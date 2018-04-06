@@ -1,0 +1,182 @@
+buildscript {
+    ext {
+        asciiDocOutputDir = file("${buildDir}/asciidoc/generated")
+        swaggerOutputDir = file("${buildDir}/swagger")
+        snippetsOutputDir = file("${buildDir}/asciidoc/snippets")
+        springfoxVersion = '2.7.0'
+        swaggerAnnotationsVersion = '1.5.16'
+    }
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath("io.github.swagger2markup:swagger2markup-spring-restdocs-ext:1.2.0")
+        classpath("io.github.swagger2markup:swagger2markup-gradle-plugin:1.2.0")
+        classpath("org.asciidoctor:asciidoctorj-pdf:1.5.0-alpha.10.1")
+    }
+}
+
+// new plugins syntax
+plugins {
+    // code
+    id "java"
+    // spring
+    id "io.spring.dependency-management" version "1.0.4.RELEASE"
+    id 'org.springframework.boot' version '1.5.10.RELEASE'
+    // code quality
+    id "jacoco"
+    id "org.owasp.dependencycheck" version "3.1.1"
+    // IDEs
+    id "eclipse"
+    id "idea"
+    // publishing
+    id "com.cinnober.gradle.semver-git" version "2.2.2"
+    // documentation
+    id "org.asciidoctor.convert" version "1.5.3"
+}
+
+// documentation
+apply plugin: 'io.github.swagger2markup'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+// dependencies section
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+// Spring related configs
+ext {
+    springCloudVersion = 'Dalston.SR5'
+}
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+/*
+Forces dependencies' cache invalidation for each build for dependencies marked with
+    { changing = true }
+    e.g.
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:develop-SNAPSHOT'){ changing = true }
+ */
+configurations.all {
+    // check for updates every build
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+dependencies {
+    /* SymbIoTeSecurity manual:
+       One can use the library from jitpack by default with the notation:
+           compile('com.github.symbiote-h2020:SymbIoTeSecurity:develop-SNAPSHOT') {changing = true }
+       or having cloned locally the SymbIoTeLibraries repo use it directly with project dependency by:
+           compile project(':SymbIoTeSecurity')
+       Important --- In order to use the latter you need to:
+           1) switch comments on the artifact and project dependencies
+           2) always have only one uncommented
+           3) project dependency requires changes in settings.gradle file in this project
+           4) never commit build.gradle which has project dependencies active as it will break CI builds
+   */
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:[25.3, 25.999]'){ changing = true }
+    // allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:[25.3, 25.999]:sources'){ changing = true }
+    //compile project(':SymbIoTeSecurity')
+    // Spring
+    compile('org.springframework.cloud:spring-cloud-starter')
+    compile('org.springframework.cloud:spring-cloud-starter-config')
+    compile('org.springframework.cloud:spring-cloud-starter-eureka')
+    compile('org.springframework.cloud:spring-cloud-starter-zipkin')
+    compile('org.springframework.retry:spring-retry')
+    compile('org.springframework.boot:spring-boot-starter-cache')
+    compile('org.springframework.boot:spring-boot-starter-data-mongodb')
+    compile('org.springframework.boot:spring-boot-starter-web')
+
+    // JDK 9 runtime fixes
+    if(JavaVersion.current() == JavaVersion.VERSION_1_9){
+        runtime('javax.xml.bind:jaxb-api:+')
+    }
+
+    // Swagger annotations for documentation
+    compile("io.swagger:swagger-annotations:${swaggerAnnotationsVersion}")
+
+    // tests only
+    testCompile('junit:junit:[4.12, 4.999]')
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+    testCompile('com.github.fakemongo:fongo:2.1.0')
+    testCompile("io.springfox:springfox-swagger2:${springfoxVersion}")
+    testCompile("io.springfox:springfox-bean-validators:${springfoxVersion}")
+    testCompile('org.springframework.restdocs:spring-restdocs-mockmvc')
+}
+
+
+// code quality below
+task generateJavaDocs(type: Javadoc) {
+    source = sourceSets.main.allJava
+    destinationDir = reporting.file("javadocs")
+}
+
+// jacoco configuration section
+jacoco {
+    toolVersion = "0.7.9"
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+}
+
+// owasp config
+dependencyCheck {
+    outputDirectory = "build/reports/security"
+}
+
+// including code quality extensions into the build
+check.dependsOn(jacocoTestReport)//,'dependencyCheckAnalyze')
+
+test {
+    // we don't need that for testing,
+    exclude '**/Swagger*'
+
+    testLogging {
+        exceptionFormat = 'full'
+    }
+}
+
+// documentation below
+task swaggerGeneratorTest(type: Test, dependsOn: testClasses) {
+    include '**/Swagger*'
+    systemProperty 'io.springfox.staticdocs.outputDir', swaggerOutputDir
+    systemProperty 'io.springfox.staticdocs.snippetsOutputDir', snippetsOutputDir
+}
+
+convertSwagger2markup {
+    dependsOn swaggerGeneratorTest
+    swaggerInput "${swaggerOutputDir}/swagger.json"
+    outputDir asciiDocOutputDir
+    config = [
+            'swagger2markup.pathsGroupedBy' : 'TAGS',
+            'swagger2markup.extensions.springRestDocs.snippetBaseUri': snippetsOutputDir.getAbsolutePath()]
+}
+
+asciidoctor {
+    dependsOn convertSwagger2markup
+    sources {
+        include 'index.adoc'
+    }
+    backends = ['html5', 'pdf']
+    attributes = [
+            doctype: 'book',
+            toc: 'left',
+            toclevels: '3',
+            numbered: '',
+            sectlinks: '',
+            sectanchors: '',
+            hardbreaks: '',
+            generated: asciiDocOutputDir
+    ]
+}
