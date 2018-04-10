@@ -7,17 +7,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 /**
- * Exposes services allowing SymbIoTe actors (users) to revoke their tokens and certificates
+ * Exposes services allowing SymbIoTe actors (users) to revoke their coupons
  *
  * @author Jakub Toczek (PSNC)
  */
 public interface IRevokeCredentials {
     /**
-     * Exposes a service that allows users to revoke their client certificates and tokens.
+     * Exposes a service that allows users to revoke their coupons.
      *
-     * @param revocationRequest required to revoke. Depending on it's fields, token or certificate can be revoked.
+     * @param revocationRequest required to revoke. Depending on it's fields, coupons can be revoked.
      * @return ResponseEntity<String> where as header HTTP status is sent and in body true/false depending on revocation status
      */
-    @PostMapping(value = SecurityConstants.AAM_REVOKE_CREDENTIALS, consumes = "application/json")
+    @PostMapping(value = SecurityConstants.BTR_REVOKE_COUPON, consumes = "application/json")
     ResponseEntity<String> revoke(@RequestBody RevocationRequest revocationRequest);
 }

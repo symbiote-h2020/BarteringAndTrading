@@ -7,22 +7,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 /**
- * Exposes services allowing SymbIoTe actors (users) to acquire authorization tokens
+ * Exposes services allowing SymbIoTe components to acquire coupons
  *
  * @author Mikołaj Dobski (PSNC)
- * @author Piotr Kicki (PSNC)
  * @author Jakub Toczek (PSNC)
- * @author Daniele Caldarola (CNIT)
- * @author Pietro Tedeschi (CNIT)
- * @author Nemanja Ignjatov (UNIVIE)
  */
-public interface IGetToken {
+public interface IGetCoupon {
     /**
+     * //TODO @JT change documentation
      * @param loginRequest JWS build in accordance to @{@link eu.h2020.symbiote.security.helpers.CryptoHelper#buildHomeTokenAcquisitionRequest(HomeCredentials)}
      *                     and http://www.smarteremc2.eu/colab/display/SYM/Home+Authorization+Token+acquisition+%28home+login%29+request
-     * @return HOME token used to access restricted resources offered in SymbIoTe
+     * @return Coupon used to access resources offered in SymbIoTe
      */
-    @PostMapping(value = SecurityConstants.AAM_GET_HOME_TOKEN)
-    ResponseEntity<String> getHomeToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String loginRequest);
+    @PostMapping(value = SecurityConstants.BTR_GET_DISCRETE_COUPON)
+    ResponseEntity<String> getDiscreteCoupon(@RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String loginRequest);
 
 }

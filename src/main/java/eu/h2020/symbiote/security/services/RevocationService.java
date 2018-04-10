@@ -25,9 +25,9 @@ public class RevocationService {
     private static Log log = LogFactory.getLog(RevocationService.class);
     private final RevocationHelper revocationHelper;
     private final PasswordEncoder passwordEncoder;
-    @Value("${bat.deployment.owner.username}")
+    @Value("${btr.deployment.owner.username}")
     private String AAMOwnerUsername;
-    @Value("${bat.deployment.owner.password}")
+    @Value("${btr.deployment.owner.password}")
     private String AAMOwnerPassword;
 
     @Autowired
@@ -63,7 +63,7 @@ public class RevocationService {
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
         }
         if (!revocationRequest.getHomeTokenString().isEmpty()) {
-            return new RevocationResponse(this.revocationHelper.revokeHomeTokenByAdmin(revocationRequest.getHomeTokenString()), HttpStatus.OK);
+            return new RevocationResponse(this.revocationHelper.revokeCouponByAdmin(revocationRequest.getHomeTokenString()), HttpStatus.OK);
         }
         log.error(InvalidArgumentsException.REQUEST_IS_INCORRECTLY_BUILT);
         return new RevocationResponse(false, HttpStatus.BAD_REQUEST);

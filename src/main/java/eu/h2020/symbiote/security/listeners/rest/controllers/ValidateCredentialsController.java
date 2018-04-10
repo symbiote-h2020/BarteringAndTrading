@@ -21,11 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
  * Spring controller to handle HTTPS requests related to the RESTful web services associated to credentials validation.
  *
  * @author Mikolaj Dobski (PSNC)
- * @author Piotr Kicki (PSNC)
+ * @author Jakub Toczek (PSNC)
  * @see CredentialsValidationService
  */
 @RestController
-@Api(value = "/docs/validateCredentials", description = "Exposes services used to validate tokens and certificates in given AAM")
+@Api(value = "/docs/validateCredentials", description = "Exposes services used to validate coupons in given BTR")
 public class ValidateCredentialsController implements IValidateCredentials {
 
     private Log log = LogFactory.getLog(ValidateCredentialsController.class);
@@ -37,35 +37,17 @@ public class ValidateCredentialsController implements IValidateCredentials {
         this.credentialsValidationService = credentialsValidationService;
     }
 
-    private String rebuildPEMStringFromHeader(String flatPEMString) {
-        String PEMBEGIN = "-----BEGIN CERTIFICATE-----";
-        String PEMEND = "-----END CERTIFICATE-----";
-        String certificateContent = flatPEMString.substring(PEMBEGIN.length(), flatPEMString.indexOf(PEMEND));
-        return PEMBEGIN + '\n' + certificateContent + '\n' + PEMEND;
-    }
-
-
     @Override
     @ApiOperation(value = "Responds with validation status of processed Validation request", response = ValidationStatus.class)
     public ValidationStatus validate(
-            @ApiParam(value = "Token to be validated", required = true)
-            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String token,
-            @ApiParam(value = "used for Offline scenarios")
-            @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,
-            @ApiParam(value = "used for Offline scenarios")
-            @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificateSigningAAMCertificate,
-            @ApiParam(value = "used for Offline scenarios")
-            @RequestHeader(name = SecurityConstants.FOREIGN_TOKEN_ISSUING_AAM_CERTIFICATE, defaultValue = "") String foreignTokenIssuingAAMCertificate) {
+            @ApiParam(value = "Coupon to be validated", required = true)
+            @RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString) {
         try {
             // input sanity check
-            JWTEngine.validateTokenString(token);
+            JWTEngine.validateJWTString(couponString);
 
-            // rebuilding PEMs from headers
-            String parsedClientCert = (clientCertificate.isEmpty()) ? clientCertificate : rebuildPEMStringFromHeader(clientCertificate);
-            String parsedClientSigningCert = (clientCertificateSigningAAMCertificate.isEmpty()) ? clientCertificateSigningAAMCertificate : rebuildPEMStringFromHeader(clientCertificateSigningAAMCertificate);
-            String parsedForeignTokenCert = (foreignTokenIssuingAAMCertificate.isEmpty()) ? foreignTokenIssuingAAMCertificate : rebuildPEMStringFromHeader(foreignTokenIssuingAAMCertificate);
             // real validation
-            return credentialsValidationService.validate(token, parsedClientCert, parsedClientSigningCert, parsedForeignTokenCert);
+            return credentialsValidationService.validate(couponString);
         } catch (ValidationException e) {
             log.error(e);
             return ValidationStatus.UNKNOWN;

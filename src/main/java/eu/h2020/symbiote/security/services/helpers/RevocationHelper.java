@@ -1,12 +1,12 @@
 package eu.h2020.symbiote.security.services.helpers;
 
-import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
+import eu.h2020.symbiote.security.repositories.RevokedCouponsRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,45 +15,42 @@ import org.springframework.stereotype.Component;
 import java.util.Base64;
 
 /**
- * Helper for revoking credentials.
+ * Helper for revoking coupons.
  *
- * @author Daniele Caldarola (CNIT)
- * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
- * @author Piotr Kicki (PSNC)
  * @author Jakub Toczek (PSNC)
  */
 @Component
 public class RevocationHelper {
     private static final Logger log = LoggerFactory.getLogger(RevocationHelper.class);
 
-    private final RevokedTokensRepository revokedTokensRepository;
+    private final RevokedCouponsRepository revokedCouponsRepository;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
 
 
     @Autowired
-    public RevocationHelper(RevokedTokensRepository revokedTokensRepository,
+    public RevocationHelper(RevokedCouponsRepository revokedCouponsRepository,
                             CertificationAuthorityHelper certificationAuthorityHelper) {
-        this.revokedTokensRepository = revokedTokensRepository;
+        this.revokedCouponsRepository = revokedCouponsRepository;
         this.certificationAuthorityHelper = certificationAuthorityHelper;
     }
 
 
-    public boolean revokeHomeTokenByAdmin(String token) throws
+    public boolean revokeCouponByAdmin(String couponString) throws
             ValidationException,
             MalformedJWTException {
-        if (JWTEngine.validateTokenString(token) != ValidationStatus.VALID) {
+        if (JWTEngine.validateJWTString(couponString) != ValidationStatus.VALID) {
             throw new ValidationException(ValidationException.INVALID_TOKEN);
         }
-        JWTClaims tokenClaims = JWTEngine.getClaimsFromToken(token);
-        if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(tokenClaims.getIss())) {
+        JWTClaims couponClaims = JWTEngine.getClaimsFromJWT(couponString);
+        if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(couponClaims.getIss())) {
             return false;
         }
-        if (!tokenClaims.getIpk().equals(Base64.getEncoder().encodeToString(certificationAuthorityHelper.getAAMPublicKey().getEncoded()))) {
+        if (!couponClaims.getIpk().equals(Base64.getEncoder().encodeToString(certificationAuthorityHelper.getAAMPublicKey().getEncoded()))) {
             return false;
         }
-        revokedTokensRepository.save(new Token(token));
-        log.debug("Token: %s was removed succesfully", token);
+        revokedCouponsRepository.save(new Coupon(couponString));
+        log.debug("Coupon: %s was removed succesfully", couponClaims.getJti());
         return true;
 
     }

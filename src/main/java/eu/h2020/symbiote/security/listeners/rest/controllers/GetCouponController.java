@@ -1,10 +1,10 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
+import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetToken;
-import eu.h2020.symbiote.security.services.GetTokenService;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetCoupon;
+import eu.h2020.symbiote.security.services.GetCouponService;
 import io.swagger.annotations.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -17,39 +17,37 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 /**
- * Spring controller to handle HTTPS requests related to the RESTful web services associated with acquiring tokens.
+ * Spring controller to handle HTTPS requests related to the RESTful web services associated with acquiring coupons.
  *
- * @author Daniele Caldarola (CNIT)
- * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikolaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
- * @see GetTokenService
+ * @see GetCouponService
  */
 @RestController
-@Api(value = "/docs/getTokens", description = "Exposes services responsible for providing Tokens")
-public class GetTokenController implements IGetToken {
+@Api(value = "/docs/getCoupons", description = "Exposes services responsible for providing Coupons")
+public class GetCouponController implements IGetCoupon {
 
-    private final GetTokenService getTokenService;
-    private Log log = LogFactory.getLog(GetTokenController.class);
+    private final GetCouponService getCouponService;
+    private Log log = LogFactory.getLog(GetCouponController.class);
 
     @Autowired
-    public GetTokenController(GetTokenService getTokenService) {
-        this.getTokenService = getTokenService;
+    public GetCouponController(GetCouponService getCouponService) {
+        this.getCouponService = getCouponService;
     }
 
-    //L1 Diagrams - getHomeToken()
-    @ApiOperation(value = "Issues a Home Token")
+    //L1 Diagrams - getDiscreteCoupon()
+    @ApiOperation(value = "Issues a Discrete Coupon")
     @ApiResponses({
-            @ApiResponse(code = 400, message = "Received token was malformed"),
+            @ApiResponse(code = 400, message = "Received coupon was malformed"),
             @ApiResponse(code = 401, message = "Incorrect Credentials were provided"),
-            @ApiResponse(code = 500, message = "Server failed to create Home Token")})
-    public ResponseEntity<String> getHomeToken(
-            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME)
+            @ApiResponse(code = 500, message = "Server failed to create Coupon")})
+    public ResponseEntity<String> getDiscreteCoupon(
+            @RequestHeader(SecurityConstants.COUPON_HEADER_NAME)
             @ApiParam(value = "JWS built in accordance to Symbiote Security Cryptohelper", required = true) String loginRequest) {
         try {
-            Token token = getTokenService.getHomeToken(loginRequest);
+            Coupon coupon = getCouponService.getDiscreteCoupon(loginRequest);
             HttpHeaders headers = new HttpHeaders();
-            headers.add(SecurityConstants.TOKEN_HEADER_NAME, token.getToken());
+            headers.add(SecurityConstants.COUPON_HEADER_NAME, coupon.getCoupon());
             return new ResponseEntity<>(headers, HttpStatus.OK);
         } catch (SecurityException e) {
             log.error(e);

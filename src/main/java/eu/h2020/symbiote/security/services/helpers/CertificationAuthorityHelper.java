@@ -53,11 +53,12 @@ public class CertificationAuthorityHelper {
     private final ContentSigner contentSigner;
     private ApplicationContext ctx;
 
-    public CertificationAuthorityHelper(@Value("${bat.security.KEY_STORE_FILE_NAME}") String keyStoreFileName,
-                                        @Value("${bat.security.ROOT_CA_CERTIFICATE_ALIAS}") String rootCACertificateAlias,
-                                        @Value("${bat.security.CERTIFICATE_ALIAS}") String certificateAlias,
-                                        @Value("${bat.security.KEY_STORE_PASSWORD}") String keyStorePassword,
-                                        @Value("${bat.security.PV_KEY_PASSWORD}") String privateKeyPassword,
+    //TODO @JT change to use component security handler
+    public CertificationAuthorityHelper(@Value("${btr.security.KEY_STORE_FILE_NAME}") String keyStoreFileName,
+                                        @Value("${btr.security.ROOT_CA_CERTIFICATE_ALIAS}") String rootCACertificateAlias,
+                                        @Value("${btr.security.CERTIFICATE_ALIAS}") String certificateAlias,
+                                        @Value("${btr.security.KEY_STORE_PASSWORD}") String keyStorePassword,
+                                        @Value("${btr.security.PV_KEY_PASSWORD}") String privateKeyPassword,
                                         ApplicationContext ctx) throws
             SecurityMisconfigurationException {
         this.keyStoreFileName = keyStoreFileName;
@@ -71,13 +72,15 @@ public class CertificationAuthorityHelper {
         aamCertificate = getX509CertificateFromKeystore(certificateAlias);
         aamPrivateKey = loadPrivateKeyFromKeyStore();
         contentSigner = prepareContentSigner();
+
+        /*
         if (getDeploymentType() != IssuingAuthorityType.CORE
                 && certificateAlias.equals(rootCACertificateAlias))
             throw new SecurityMisconfigurationException("This AAM's certificate alias must be different from the Core AAM's - root certificate alias");
-
+        */
         rootCertificationAuthorityCertificate = getX509CertificateFromKeystore(rootCACertificateAlias);
         validateCertificatesQuality();
-        validateSpringProfileDeploymentTypeMatch();
+        //validateSpringProfileDeploymentTypeMatch();
     }
 
     private void validateCertificatesQuality() throws
