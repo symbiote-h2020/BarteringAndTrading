@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.services;
 
-import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,7 @@ public class CredentialsValidationService {
         this.validationHelper = validationHelper;
     }
 
-    public ValidationStatus validate(String couponString) {
+    public CouponValidationStatus validate(String couponString) throws MalformedJWTException {
         return validationHelper.validate(couponString);
     }
 }

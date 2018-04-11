@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.functional;
 
-import eu.h2020.symbiote.security.AbstractBaTTestSuite;
+import eu.h2020.symbiote.security.AbstractBTMTestSuite;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
@@ -11,7 +11,8 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.services.GetCouponService;
+import eu.h2020.symbiote.security.services.ManageCouponService;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import org.junit.After;
 import org.junit.Before;
@@ -29,31 +30,34 @@ import java.security.NoSuchProviderException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 
+import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
 //TODO @JT make more tests!
 @TestPropertySource("/core.properties")
 public class CouponsIssuingFunctionalTests extends
-        AbstractBaTTestSuite {
+        AbstractBTMTestSuite {
 
     @Autowired
-    GetCouponService getCouponService;
+    CertificationAuthorityHelper certificationAuthorityHelper;
+    @Autowired
+    ManageCouponService manageCouponService;
     @Autowired
     DummyCoreAAM dummyCoreAAM;
-    @Value("${btr.deployment.coupon.validity}")
+    @Value("${btm.deployment.coupon.validity}")
     private Long couponValidity;
     @LocalServerPort
     private int port;
 
     @Before
     public void before() {
-        ReflectionTestUtils.setField(getCouponService, "coreInterfaceAddress", serverAddress + "/test/caam");
         dummyCoreAAM.port = port;
+        ReflectionTestUtils.setField(manageCouponService, "coreInterfaceAddress", serverAddress + "/test/caam");
     }
 
     @After
     public void after() {
-        ReflectionTestUtils.setField(getCouponService, "coreInterfaceAddress", serverAddress);
+        ReflectionTestUtils.setField(manageCouponService, "coreInterfaceAddress", serverAddress);
     }
 
     @Test
@@ -74,9 +78,11 @@ public class CouponsIssuingFunctionalTests extends
                 "registry-core-1"));
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String discreteCoupon = btrClient.getDiscreteCoupon(loginRequest);
+        String discreteCoupon = btmClient.getDiscreteCoupon(loginRequest);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromJWT(discreteCoupon);
         assertEquals(Coupon.Type.DISCRETE, Coupon.Type.valueOf(claimsFromToken.getTtyp()));
         assertEquals(couponValidity.toString(), claimsFromToken.getVal());
+        assertTrue(validCouponsRepository.exists(claimsFromToken.getJti()));
+        assertEquals(couponValidity, validCouponsRepository.findOne(claimsFromToken.getJti()).getValidity());
     }
 }

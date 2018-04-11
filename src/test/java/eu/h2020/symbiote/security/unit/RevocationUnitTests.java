@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.unit;
 
-import eu.h2020.symbiote.security.AbstractBaTTestSuite;
+import eu.h2020.symbiote.security.AbstractBTMTestSuite;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
  */
 @TestPropertySource("/core.properties")
 public class RevocationUnitTests extends
-        AbstractBaTTestSuite {
+        AbstractBTMTestSuite {
 
     @Autowired
     private RevocationService revocationService;

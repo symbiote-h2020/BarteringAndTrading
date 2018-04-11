@@ -18,6 +18,6 @@ public interface IRevokeCredentials {
      * @param revocationRequest required to revoke. Depending on it's fields, coupons can be revoked.
      * @return ResponseEntity<String> where as header HTTP status is sent and in body true/false depending on revocation status
      */
-    @PostMapping(value = SecurityConstants.BTR_REVOKE_COUPON, consumes = "application/json")
+    @PostMapping(value = SecurityConstants.BTM_REVOKE_COUPON, consumes = "application/json")
     ResponseEntity<String> revoke(@RequestBody RevocationRequest revocationRequest);
 }

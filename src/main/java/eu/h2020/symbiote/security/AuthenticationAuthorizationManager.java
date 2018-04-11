@@ -7,7 +7,7 @@ import org.springframework.cloud.sleuth.sampler.AlwaysSampler;
 import org.springframework.context.annotation.Bean;
 
 /**
- * Spring Boot Application class for Bartening and Trading (BaT) component.
+ * Spring Boot Application class for Bartering and Trading (BTM) component.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)

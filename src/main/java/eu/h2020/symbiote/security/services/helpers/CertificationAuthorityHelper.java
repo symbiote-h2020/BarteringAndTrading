@@ -1,8 +1,10 @@
 package eu.h2020.symbiote.security.services.helpers;
 
+import eu.h2020.symbiote.security.ComponentSecurityHandlerFactory;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
 import org.apache.commons.logging.Log;
@@ -19,8 +21,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -42,99 +42,44 @@ public class CertificationAuthorityHelper {
     private static final Long CERTIFICATE_VALIDITY_PERIOD = 1L * 365L * 24L * 60L * 60L * 1000L;
     private static final String CA_FLAG_IDENTIFIER = "2.5.29.19";
     private static Log log = LogFactory.getLog(CertificationAuthorityHelper.class);
-    private final String keyStoreFileName;
-    private final String certificateAlias;
-    private final String keyStorePassword;
-    private final String privateKeyPassword;
-    private final KeyStore keyStore;
-    private final X509Certificate aamCertificate;
+    private final X509Certificate btmCertificate;
     private final X509Certificate rootCertificationAuthorityCertificate;
-    private final PrivateKey aamPrivateKey;
+    private final PrivateKey btmPrivateKey;
     private final ContentSigner contentSigner;
-    private ApplicationContext ctx;
+    private final String localAAMAddress;
+    private IComponentSecurityHandler componentSecurityHandler;
 
     //TODO @JT change to use component security handler
-    public CertificationAuthorityHelper(@Value("${btr.security.KEY_STORE_FILE_NAME}") String keyStoreFileName,
-                                        @Value("${btr.security.ROOT_CA_CERTIFICATE_ALIAS}") String rootCACertificateAlias,
-                                        @Value("${btr.security.CERTIFICATE_ALIAS}") String certificateAlias,
-                                        @Value("${btr.security.KEY_STORE_PASSWORD}") String keyStorePassword,
-                                        @Value("${btr.security.PV_KEY_PASSWORD}") String privateKeyPassword,
-                                        ApplicationContext ctx) throws
-            SecurityMisconfigurationException {
-        this.keyStoreFileName = keyStoreFileName;
-        this.certificateAlias = certificateAlias;
-        this.keyStorePassword = keyStorePassword;
-        this.privateKeyPassword = privateKeyPassword;
-        this.ctx = ctx;
+    public CertificationAuthorityHelper(@Value("${btm.security.KEY_STORE_FILE_NAME}") String keyStoreFileName,
+                                        @Value("${btm.security.KEY_STORE_PASSWORD}") String keyStorePassword,
+                                        @Value("${btm.deployment.owner.username}") String AAMOwnerUsername,
+                                        @Value("${btm.deployment.owner.password}") String AAMOwnerPassword,
+                                        @Value("${symbIoTe.localaam.url}") String localAAMAddress,
+                                        @Value("${btm.componentId}") String crmComponentId) throws
+            SecurityMisconfigurationException,
+            SecurityHandlerException,
+            CertificateException {
+
+        this.localAAMAddress = localAAMAddress;
+        componentSecurityHandler = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                keyStoreFileName,
+                keyStorePassword,
+                crmComponentId,
+                this.localAAMAddress,
+                AAMOwnerUsername,
+                AAMOwnerPassword
+        );
         ECDSAHelper.enableECDSAProvider();
-
-        keyStore = loadKeystoreFromFile();
-        aamCertificate = getX509CertificateFromKeystore(certificateAlias);
-        aamPrivateKey = loadPrivateKeyFromKeyStore();
+        btmCertificate = componentSecurityHandler.getLocalAAMBoundCredentials().homeCredentials.certificate.getX509();
+        btmPrivateKey = componentSecurityHandler.getLocalAAMBoundCredentials().homeCredentials.privateKey;
         contentSigner = prepareContentSigner();
-
-        /*
-        if (getDeploymentType() != IssuingAuthorityType.CORE
-                && certificateAlias.equals(rootCACertificateAlias))
-            throw new SecurityMisconfigurationException("This AAM's certificate alias must be different from the Core AAM's - root certificate alias");
-        */
-        rootCertificationAuthorityCertificate = getX509CertificateFromKeystore(rootCACertificateAlias);
-        validateCertificatesQuality();
-        //validateSpringProfileDeploymentTypeMatch();
-    }
-
-    private void validateCertificatesQuality() throws
-            SecurityMisconfigurationException {
-        PrivateKey aamPrivateKey = getAAMPrivateKey();
-        if (aamPrivateKey == null
-                || aamPrivateKey.getAlgorithm() == null)
-            throw new SecurityMisconfigurationException(SecurityMisconfigurationException.AAM_PRIVATE_KEY_NOT_FOUND_IN_GIVEN_CONFIGURATION
-                    + SecurityMisconfigurationException.GENERIC_README_NOTICE);
-        if (!aamPrivateKey.getAlgorithm().equals("EC"))
-            throw new SecurityMisconfigurationException(SecurityMisconfigurationException.CONFIGURATION_POINTS_TO_WRONG_CERTIFICATE
-                    + SecurityMisconfigurationException.GENERIC_README_NOTICE);
-    }
-
-    private void validateSpringProfileDeploymentTypeMatch() throws
-            SecurityMisconfigurationException {
-        List<String> activeProfiles = Arrays.asList(ctx.getEnvironment().getActiveProfiles());
-        switch (getDeploymentType()) {
-            case CORE:
-                if (!activeProfiles.get(0).equals("core")
-                        || activeProfiles.size() != 1)
-                    throw new SecurityMisconfigurationException("You are loading Core certificate. In your bootstrap.properties, the following line must be present: 'spring.profiles.active=core'");
-                break;
-            case PLATFORM:
-                if (!activeProfiles.get(0).equals("platform")
-                        || activeProfiles.size() != 1)
-                    throw new SecurityMisconfigurationException("You are loading Platform certificate. In your bootstrap.properties, the following line must be present: 'spring.profiles.active=platform'");
-                break;
-            case SMART_SPACE:
-                if (!activeProfiles.get(0).equals("smart_space")
-                        || activeProfiles.size() != 1)
-                    throw new SecurityMisconfigurationException("You are loading Smart Space certificate. In your bootstrap.properties, the following line must be present:'spring.profiles.active=smart_space'");
-                break;
-            case NULL:
-                throw new SecurityMisconfigurationException("Failed to resolve the AAM deploymen type (CORE/PLATFORM/SMARTSPACE) from the given keystore from: " + keyStoreFileName);
-        }
-    }
-
-    /**
-     * @return resolves the deployment type using the AAM certificate
-     */
-    public IssuingAuthorityType getDeploymentType() {
-        String aamInstanceIdentifier = getAAMInstanceIdentifier();
-        if (aamInstanceIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID))
-            return IssuingAuthorityType.CORE;
-        if (aamInstanceIdentifier.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX))
-            return IssuingAuthorityType.SMART_SPACE;
-        return IssuingAuthorityType.PLATFORM;
+        rootCertificationAuthorityCertificate = componentSecurityHandler.getLocalAAMBoundCredentials().homeCredentials.homeAAM.getAamCACertificate().getX509();
     }
 
     /**
      * @return resolves the aam instance identifier using the AAM certificate
      */
-    public String getAAMInstanceIdentifier() {
+    public String getBTMInstanceIdentifier() {
         return getAAMCertificate().getSubjectX500Principal().getName().split("CN=")[1].split(",")[0];
     }
 
@@ -142,7 +87,7 @@ public class CertificationAuthorityHelper {
     /**
      * @return Retrieves AAM's certificate in PEM format
      */
-    public String getAAMCert() throws
+    public String getBTMCert() throws
             IOException {
         return CryptoHelper.convertX509ToPEM(getAAMCertificate());
     }
@@ -162,68 +107,27 @@ public class CertificationAuthorityHelper {
         return rootCertificationAuthorityCertificate;
     }
 
-    private X509Certificate getX509CertificateFromKeystore(String certificateAlias) throws
-            SecurityMisconfigurationException {
-        try {
-            return (X509Certificate) this.keyStore.getCertificate(certificateAlias);
-        } catch (KeyStoreException e) {
-            log.error(e);
-            throw new SecurityMisconfigurationException("Failed to load the certificate aliased: " + certificateAlias
-                    + " due to " + e.getMessage());
-        }
-    }
-
-    private KeyStore loadKeystoreFromFile() throws SecurityMisconfigurationException {
-        KeyStore keystore;
-        try {
-            keystore = KeyStore.getInstance("PKCS12", "BC");
-        } catch (KeyStoreException | NoSuchProviderException e) {
-            log.error(e);
-            throw new SecurityMisconfigurationException("Failed to initialize runtime keystore due to: " + e.getMessage());
-        }
-        try {
-            if (ctx.getResource(keyStoreFileName).getFile().exists()) {
-                keystore.load(ctx.getResource(keyStoreFileName).getInputStream(), keyStorePassword.toCharArray());
-            } else {
-                keystore.load(new ClassPathResource(keyStoreFileName).getInputStream(), keyStorePassword.toCharArray());
-            }
-        } catch (IOException | NoSuchAlgorithmException | CertificateException e) {
-            log.error(e);
-            throw new SecurityMisconfigurationException("Failed to load the AAM keystore from: " + keyStoreFileName + " due to error " + e.getMessage());
-        }
-        return keystore;
-    }
-
     /**
      * @return AAM certificate in X509 format
      */
     public X509Certificate getAAMCertificate() {
-        return aamCertificate;
+        return btmCertificate;
     }
 
     /**
      * @return Retrieves AAM's public key from provisioned JavaKeyStore
      */
     public PublicKey getAAMPublicKey() {
-        return aamCertificate.getPublicKey();
+        return btmCertificate.getPublicKey();
     }
 
     /**
      * @return retrieves AAM's private key from provisioned JavaKeyStore
      */
     public PrivateKey getAAMPrivateKey() {
-        return aamPrivateKey;
+        return btmPrivateKey;
     }
 
-    private PrivateKey loadPrivateKeyFromKeyStore() throws SecurityMisconfigurationException {
-        try {
-            return (PrivateKey) this.keyStore.getKey(certificateAlias, privateKeyPassword.toCharArray());
-        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
-            log.error(e);
-            throw new SecurityMisconfigurationException("Failed to load the private key of the AAM certificate aliased: " + certificateAlias
-                    + " due to " + e.getMessage());
-        }
-    }
 
 
     private ContentSigner prepareContentSigner() throws SecurityMisconfigurationException {

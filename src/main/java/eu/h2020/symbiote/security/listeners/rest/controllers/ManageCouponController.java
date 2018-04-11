@@ -3,8 +3,11 @@ package eu.h2020.symbiote.security.listeners.rest.controllers;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetCoupon;
-import eu.h2020.symbiote.security.services.GetCouponService;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IManageCoupon;
+import eu.h2020.symbiote.security.services.ManageCouponService;
 import io.swagger.annotations.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -21,18 +24,18 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * @author Mikolaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
- * @see GetCouponService
+ * @see ManageCouponService
  */
 @RestController
 @Api(value = "/docs/getCoupons", description = "Exposes services responsible for providing Coupons")
-public class GetCouponController implements IGetCoupon {
+public class ManageCouponController implements IManageCoupon {
 
-    private final GetCouponService getCouponService;
-    private Log log = LogFactory.getLog(GetCouponController.class);
+    private final ManageCouponService manageCouponService;
+    private Log log = LogFactory.getLog(ManageCouponController.class);
 
     @Autowired
-    public GetCouponController(GetCouponService getCouponService) {
-        this.getCouponService = getCouponService;
+    public ManageCouponController(ManageCouponService manageCouponService) {
+        this.manageCouponService = manageCouponService;
     }
 
     //L1 Diagrams - getDiscreteCoupon()
@@ -45,7 +48,7 @@ public class GetCouponController implements IGetCoupon {
             @RequestHeader(SecurityConstants.COUPON_HEADER_NAME)
             @ApiParam(value = "JWS built in accordance to Symbiote Security Cryptohelper", required = true) String loginRequest) {
         try {
-            Coupon coupon = getCouponService.getDiscreteCoupon(loginRequest);
+            Coupon coupon = manageCouponService.getDiscreteCoupon(loginRequest);
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.COUPON_HEADER_NAME, coupon.getCoupon());
             return new ResponseEntity<>(headers, HttpStatus.OK);
@@ -57,5 +60,23 @@ public class GetCouponController implements IGetCoupon {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
+    }
+
+    @ApiOperation(value = "Consume a valid coupon")
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Received coupon was malformed"),
+            @ApiResponse(code = 500, message = "Server failed to create Coupon")})
+    @Override
+    public ResponseEntity<String> consumeCoupon(String couponString) {
+        try {
+            manageCouponService.consumeCoupon(couponString);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (ValidationException | InvalidArgumentsException e) {
+            log.error(e);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (MalformedJWTException e) {
+            log.error(e);
+            return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
+        }
     }
 }

@@ -25,9 +25,9 @@ public class RevocationService {
     private static Log log = LogFactory.getLog(RevocationService.class);
     private final RevocationHelper revocationHelper;
     private final PasswordEncoder passwordEncoder;
-    @Value("${btr.deployment.owner.username}")
+    @Value("${btm.deployment.owner.username}")
     private String AAMOwnerUsername;
-    @Value("${btr.deployment.owner.password}")
+    @Value("${btm.deployment.owner.password}")
     private String AAMOwnerPassword;
 
     @Autowired

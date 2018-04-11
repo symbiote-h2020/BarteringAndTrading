@@ -1,13 +1,19 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Coupon;
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.ConsumedCouponsRepository;
+import eu.h2020.symbiote.security.repositories.ValidCouponsRepository;
+import eu.h2020.symbiote.security.repositories.entities.ValidCoupon;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
+import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,18 +33,31 @@ import java.security.cert.CertificateException;
  * @author Mikołaj Dobski (PSNC)
  */
 @Service
-public class GetCouponService {
+public class ManageCouponService {
 
-    private static Log log = LogFactory.getLog(GetCouponService.class);
+    private static Log log = LogFactory.getLog(ManageCouponService.class);
     private final CouponIssuer couponIssuer;
     private final String coreInterfaceAddress;
+    private final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final ValidationHelper validationHelper;
+
+    private final ValidCouponsRepository validCouponsRepository;
+    private final ConsumedCouponsRepository consumedCouponsRepository;
 
 
     @Autowired
-    public GetCouponService(CouponIssuer couponIssuer,
-                            @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
+    public ManageCouponService(CouponIssuer couponIssuer,
+                               @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
+                               CertificationAuthorityHelper certificationAuthorityHelper,
+                               ValidationHelper validationHelper,
+                               ValidCouponsRepository validCouponsRepository,
+                               ConsumedCouponsRepository consumedCouponsRepository) {
         this.couponIssuer = couponIssuer;
         this.coreInterfaceAddress = coreInterfaceAddress;
+        this.certificationAuthorityHelper = certificationAuthorityHelper;
+        this.validationHelper = validationHelper;
+        this.validCouponsRepository = validCouponsRepository;
+        this.consumedCouponsRepository = consumedCouponsRepository;
     }
 
     public Coupon getDiscreteCoupon(String loginRequest) throws
@@ -70,5 +89,30 @@ public class GetCouponService {
             throw new ValidationException(message);
         }
         return couponIssuer.getDiscreteCoupon(claims, componentPublicKey);
+    }
+
+    public boolean consumeCoupon(String couponString) throws
+            MalformedJWTException,
+            InvalidArgumentsException,
+            ValidationException {
+        Coupon coupon = new Coupon(couponString);
+        // validate coupon
+        if (!validationHelper.validate(couponString).equals(CouponValidationStatus.VALID)) {
+            throw new InvalidArgumentsException("Coupon is not valid.");
+        }
+        ValidCoupon validCoupon = validCouponsRepository.findOne(coupon.getId());
+        if (validCoupon.getCoupon().getType().equals(Coupon.Type.DISCRETE)) {
+            Long validity = validCoupon.getValidity();
+            if (validity <= 1) {
+                consumedCouponsRepository.save(validCoupon.getCoupon());
+                validCouponsRepository.delete(coupon.getId());
+            } else {
+                validCoupon.setValidity(validity - 1);
+            }
+            return true;
+        }
+        //TODO add PERIODIC coupon
+        return false;
+
     }
 }

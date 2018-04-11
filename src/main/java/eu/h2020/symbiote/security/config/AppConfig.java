@@ -26,8 +26,8 @@ class AppConfig extends AbstractMongoConfiguration {
     private String databaseHost;
     private MongoClient mongoClient = null;
 
-    AppConfig(@Value("${btr.database.name}") String databaseName,
-              @Value("${btr.database.host:localhost}") String databaseHost) {
+    AppConfig(@Value("${btm.database.name}") String databaseName,
+              @Value("${btm.database.host:localhost}") String databaseHost) {
         this.databaseName = databaseName;
         this.databaseHost = databaseHost;
     }

@@ -1,7 +1,9 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IValidateCredentials;
@@ -25,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @see CredentialsValidationService
  */
 @RestController
-@Api(value = "/docs/validateCredentials", description = "Exposes services used to validate coupons in given BTR")
+@Api(value = "/docs/validateCredentials", description = "Exposes services used to validate coupons in given BTM")
 public class ValidateCredentialsController implements IValidateCredentials {
 
     private Log log = LogFactory.getLog(ValidateCredentialsController.class);
@@ -39,7 +41,7 @@ public class ValidateCredentialsController implements IValidateCredentials {
 
     @Override
     @ApiOperation(value = "Responds with validation status of processed Validation request", response = ValidationStatus.class)
-    public ValidationStatus validate(
+    public CouponValidationStatus validate(
             @ApiParam(value = "Coupon to be validated", required = true)
             @RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString) {
         try {
@@ -48,9 +50,9 @@ public class ValidateCredentialsController implements IValidateCredentials {
 
             // real validation
             return credentialsValidationService.validate(couponString);
-        } catch (ValidationException e) {
+        } catch (ValidationException | MalformedJWTException e) {
             log.error(e);
-            return ValidationStatus.UNKNOWN;
+            return CouponValidationStatus.UNKNOWN;
         }
     }
 }

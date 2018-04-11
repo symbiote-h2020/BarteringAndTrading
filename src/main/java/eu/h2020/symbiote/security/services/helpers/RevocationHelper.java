@@ -43,7 +43,7 @@ public class RevocationHelper {
             throw new ValidationException(ValidationException.INVALID_TOKEN);
         }
         JWTClaims couponClaims = JWTEngine.getClaimsFromJWT(couponString);
-        if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(couponClaims.getIss())) {
+        if (!certificationAuthorityHelper.getBTMInstanceIdentifier().equals(couponClaims.getIss())) {
             return false;
         }
         if (!couponClaims.getIpk().equals(Base64.getEncoder().encodeToString(certificationAuthorityHelper.getAAMPublicKey().getEncoded()))) {

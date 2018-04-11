@@ -1,10 +1,12 @@
 package eu.h2020.symbiote.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.security.communication.BTRClient;
-import eu.h2020.symbiote.security.communication.IBTRClient;
+import eu.h2020.symbiote.security.communication.BTMClient;
+import eu.h2020.symbiote.security.communication.IBTMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.ConsumedCouponsRepository;
 import eu.h2020.symbiote.security.repositories.RevokedCouponsRepository;
+import eu.h2020.symbiote.security.repositories.ValidCouponsRepository;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -33,7 +35,7 @@ import java.security.cert.X509Certificate;
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration
-public abstract class AbstractBaTTestSuite {
+public abstract class AbstractBTMTestSuite {
 
     protected final String username = "testApplicationUsername";
     protected final String clientId = "clientId";
@@ -42,6 +44,10 @@ public abstract class AbstractBaTTestSuite {
     protected KeyPair userKeyPair;
     @Autowired
     protected RevokedCouponsRepository revokedCouponsRepository;
+    @Autowired
+    protected ValidCouponsRepository validCouponsRepository;
+    @Autowired
+    protected ConsumedCouponsRepository consumedCouponsRepository;
 
 
     protected ObjectMapper mapper = new ObjectMapper();
@@ -49,20 +55,20 @@ public abstract class AbstractBaTTestSuite {
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     protected String coreInterfaceAddress;
 
-    @Value("${btr.deployment.owner.username}")
+    @Value("${btm.deployment.owner.username}")
     protected String AAMOwnerUsername;
-    @Value("${btr.deployment.owner.password}")
+    @Value("${btm.deployment.owner.password}")
     protected String AAMOwnerPassword;
-    @Value("${btr.security.KEY_STORE_PASSWORD}")
+    @Value("${btm.security.KEY_STORE_PASSWORD}")
     protected String KEY_STORE_PASSWORD;
-    @Value("${btr.security.PV_KEY_PASSWORD}")
+    @Value("${btm.security.PV_KEY_PASSWORD}")
     protected String PV_KEY_PASSWORD;
-    @Value("${btr.security.KEY_STORE_FILE_NAME}")
+    @Value("${btm.security.KEY_STORE_FILE_NAME}")
     protected String KEY_STORE_FILE_NAME;
-    @Value("${btr.security.CERTIFICATE_ALIAS}")
+    @Value("${btm.security.CERTIFICATE_ALIAS}")
     protected String CERTIFICATE_ALIAS;
 
-    protected IBTRClient btrClient;
+    protected IBTMClient btmClient;
     @LocalServerPort
     private int port;
 
@@ -118,7 +124,7 @@ public abstract class AbstractBaTTestSuite {
     public void setUp() throws Exception {
         // Catch the random port
         serverAddress = "https://localhost:" + port;
-        btrClient = new BTRClient(serverAddress);
+        btmClient = new BTMClient(serverAddress);
         userKeyPair = CryptoHelper.createKeyPair();
 
         // cleanup db

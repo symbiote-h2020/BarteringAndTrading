@@ -2,10 +2,11 @@ package eu.h2020.symbiote.security.services.helpers;
 
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
+import eu.h2020.symbiote.security.repositories.ValidCouponsRepository;
+import eu.h2020.symbiote.security.repositories.entities.ValidCoupon;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -34,18 +35,20 @@ public class CouponIssuer {
 
     private static Log log = LogFactory.getLog(CouponIssuer.class);
     private static SecureRandom random = new SecureRandom();
-    // BTR configuration
+    // BTM configuration
     private final String deploymentId;
-    private final IssuingAuthorityType deploymentType;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
-    @Value("${btr.deployment.coupon.validity}")
+    @Value("${btm.deployment.coupon.validity}")
     private Long couponValidity;
 
+    private ValidCouponsRepository validCouponsRepository;
+
     @Autowired
-    public CouponIssuer(CertificationAuthorityHelper certificationAuthorityHelper) {
+    public CouponIssuer(CertificationAuthorityHelper certificationAuthorityHelper,
+                        ValidCouponsRepository validCouponsRepository) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
-        this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
-        this.deploymentType = certificationAuthorityHelper.getDeploymentType();
+        this.deploymentId = certificationAuthorityHelper.getBTMInstanceIdentifier();
+        this.validCouponsRepository = validCouponsRepository;
     }
 
     public static String buildCouponJWT(String subject,
@@ -88,13 +91,12 @@ public class CouponIssuer {
         return jwtBuilder.compact();
     }
 
-
     public Coupon getDiscreteCoupon(JWTClaims claims, PublicKey componentPublicKey)
             throws JWTCreationException {
         try {
             Map<String, String> attributes = new HashMap<>();
             String subject = claims.getSub();
-            return new Coupon(buildCouponJWT(
+            Coupon coupon = new Coupon(buildCouponJWT(
                     subject,
                     attributes,
                     componentPublicKey.getEncoded(),
@@ -104,6 +106,8 @@ public class CouponIssuer {
                     certificationAuthorityHelper.getAAMPublicKey(),
                     certificationAuthorityHelper.getAAMPrivateKey()
             ));
+            validCouponsRepository.save(new ValidCoupon(coupon));
+            return coupon;
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);
