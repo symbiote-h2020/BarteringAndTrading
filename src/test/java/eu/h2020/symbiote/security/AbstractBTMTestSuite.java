@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -30,8 +31,9 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
- * BaT test suite stub with possibly shareable fields.
+ * BTM test suite stub with possibly shareable fields.
  */
+@ActiveProfiles("test")
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration
@@ -97,18 +99,18 @@ public abstract class AbstractBTMTestSuite {
         HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
     }
 
-    public X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
+    public static X509Certificate getCertificateFromTestKeystore(String keyStoreName, String keyStorePassword, String certificateAlias) throws
             NoSuchProviderException,
             KeyStoreException,
             IOException,
             CertificateException,
             NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), keyStorePassword.toCharArray());
         return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
     }
 
-    public PrivateKey getPrivateKeyTestFromKeystore(String keyStoreName, String certificateAlias) throws
+    public static PrivateKey getPrivateKeyTestFromKeystore(String keyStoreName, String keyStorePassword, String pvKeyPassword, String certificateAlias) throws
             NoSuchProviderException,
             KeyStoreException,
             IOException,
@@ -116,8 +118,8 @@ public abstract class AbstractBTMTestSuite {
             NoSuchAlgorithmException,
             UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        return (PrivateKey) pkcs12Store.getKey(certificateAlias, PV_KEY_PASSWORD.toCharArray());
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), keyStorePassword.toCharArray());
+        return (PrivateKey) pkcs12Store.getKey(certificateAlias, pvKeyPassword.toCharArray());
     }
 
     @Before

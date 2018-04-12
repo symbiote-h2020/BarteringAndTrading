@@ -43,7 +43,7 @@ public class RevocationUnitTests extends
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         JWTClaims claims = JWTEngine.getClaimsFromJWT(loginRequest);
         // acquiring valid token
-        Coupon discreteCoupon = couponIssuer.getDiscreteCoupon(claims, userKeyPair.getPublic());
+        Coupon discreteCoupon = couponIssuer.getDiscreteCoupon();
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));

@@ -88,7 +88,7 @@ public class ManageCouponService {
             log.error(message);
             throw new ValidationException(message);
         }
-        return couponIssuer.getDiscreteCoupon(claims, componentPublicKey);
+        return couponIssuer.getDiscreteCoupon();
     }
 
     public boolean consumeCoupon(String couponString) throws

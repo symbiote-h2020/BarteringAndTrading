@@ -74,8 +74,14 @@ public class CouponsIssuingFunctionalTests extends
             IOException {
 
         String componentId = "testComponentId";
-        HomeCredentials homeCredentials = new HomeCredentials(null, SecurityConstants.CORE_AAM_INSTANCE_ID, componentId, null, getPrivateKeyTestFromKeystore("keystores/core.p12",
-                "registry-core-1"));
+        HomeCredentials homeCredentials = new HomeCredentials(null,
+                SecurityConstants.CORE_AAM_INSTANCE_ID,
+                componentId,
+                null,
+                getPrivateKeyTestFromKeystore("keystores/core.p12",
+                        KEY_STORE_PASSWORD,
+                        PV_KEY_PASSWORD,
+                        "registry-core-1"));
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
         String discreteCoupon = btmClient.getDiscreteCoupon(loginRequest);

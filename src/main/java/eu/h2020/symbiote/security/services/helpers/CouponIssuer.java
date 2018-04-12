@@ -3,7 +3,6 @@ package eu.h2020.symbiote.security.services.helpers;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
 import eu.h2020.symbiote.security.repositories.ValidCouponsRepository;
 import eu.h2020.symbiote.security.repositories.entities.ValidCoupon;
@@ -51,9 +50,7 @@ public class CouponIssuer {
         this.validCouponsRepository = validCouponsRepository;
     }
 
-    public static String buildCouponJWT(String subject,
-                                        Map<String, String> attributes,
-                                        byte[] subjectPublicKey,
+    public static String buildCouponJWT(Map<String, String> attributes,
                                         Coupon.Type voucherType,
                                         Long tokenValidity,
                                         String issuer,
@@ -68,9 +65,6 @@ public class CouponIssuer {
         claimsMap.put("ipk", Base64.getEncoder().encodeToString(issuerPublicKey.getEncoded()));
         claimsMap.put("val", tokenValidity);
 
-        //Insert issuee Public Key
-        claimsMap.put("spk", Base64.getEncoder().encodeToString(subjectPublicKey));
-
         //Add symbIoTe related attributes to token
         if (attributes != null && !attributes.isEmpty()) {
             for (Map.Entry<String, String> entry : attributes.entrySet()) {
@@ -84,27 +78,23 @@ public class CouponIssuer {
         jwtBuilder.setClaims(claimsMap);
         jwtBuilder.setId(jti);
         jwtBuilder.setIssuer(issuer);
-        jwtBuilder.setSubject(subject);
         jwtBuilder.setIssuedAt(new Date());
         jwtBuilder.signWith(SignatureAlgorithm.ES256, issuerPrivateKey);
 
         return jwtBuilder.compact();
     }
 
-    public Coupon getDiscreteCoupon(JWTClaims claims, PublicKey componentPublicKey)
+    public Coupon getDiscreteCoupon()
             throws JWTCreationException {
         try {
             Map<String, String> attributes = new HashMap<>();
-            String subject = claims.getSub();
             Coupon coupon = new Coupon(buildCouponJWT(
-                    subject,
                     attributes,
-                    componentPublicKey.getEncoded(),
                     Coupon.Type.DISCRETE,
                     couponValidity,
                     deploymentId,
-                    certificationAuthorityHelper.getAAMPublicKey(),
-                    certificationAuthorityHelper.getAAMPrivateKey()
+                    certificationAuthorityHelper.getBTMPublicKey(),
+                    certificationAuthorityHelper.getBTMPrivateKey()
             ));
             validCouponsRepository.save(new ValidCoupon(coupon));
             return coupon;

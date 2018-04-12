@@ -46,7 +46,7 @@ public class RevocationHelper {
         if (!certificationAuthorityHelper.getBTMInstanceIdentifier().equals(couponClaims.getIss())) {
             return false;
         }
-        if (!couponClaims.getIpk().equals(Base64.getEncoder().encodeToString(certificationAuthorityHelper.getAAMPublicKey().getEncoded()))) {
+        if (!couponClaims.getIpk().equals(Base64.getEncoder().encodeToString(certificationAuthorityHelper.getBTMPublicKey().getEncoded()))) {
             return false;
         }
         revokedCouponsRepository.save(new Coupon(couponString));
