@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 public interface IManageCoupon {
     /**
      * //TODO @JT change documentation
-     * @param loginRequest JWS build in accordance to @{@link eu.h2020.symbiote.security.helpers.CryptoHelper#buildHomeTokenAcquisitionRequest(HomeCredentials)}
+     * @param loginRequest JWS build in accordance to @{@link eu.h2020.symbiote.security.helpers.CryptoHelper#buildJWTAcquisitionRequest(HomeCredentials)}
      *                     and http://www.smarteremc2.eu/colab/display/SYM/Home+Authorization+Token+acquisition+%28home+login%29+request
      * @return Coupon used to access resources offered in SymbIoTe
      */

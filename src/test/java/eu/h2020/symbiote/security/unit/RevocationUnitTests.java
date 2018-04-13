@@ -40,7 +40,7 @@ public class RevocationUnitTests extends
             MalformedJWTException {
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        String loginRequest = CryptoHelper.buildJWTAcquisitionRequest(homeCredentials);
         JWTClaims claims = JWTEngine.getClaimsFromJWT(loginRequest);
         // acquiring valid token
         Coupon discreteCoupon = couponIssuer.getDiscreteCoupon();

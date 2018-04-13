@@ -67,7 +67,9 @@ public class ManageCouponController implements IManageCoupon {
             @ApiResponse(code = 400, message = "Received coupon was malformed"),
             @ApiResponse(code = 500, message = "Server failed to create Coupon")})
     @Override
-    public ResponseEntity<String> consumeCoupon(String couponString) {
+    public ResponseEntity<String> consumeCoupon(
+            @RequestHeader(SecurityConstants.COUPON_HEADER_NAME)
+            @ApiParam(value = "Coupon for consumption", required = true) String couponString) {
         try {
             manageCouponService.consumeCoupon(couponString);
             return new ResponseEntity<>(HttpStatus.OK);

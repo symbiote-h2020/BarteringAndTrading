@@ -102,12 +102,13 @@ public class ManageCouponService {
         }
         ValidCoupon validCoupon = validCouponsRepository.findOne(coupon.getId());
         if (validCoupon.getCoupon().getType().equals(Coupon.Type.DISCRETE)) {
-            Long validity = validCoupon.getValidity();
+            long validity = validCoupon.getValidity();
             if (validity <= 1) {
                 consumedCouponsRepository.save(validCoupon.getCoupon());
                 validCouponsRepository.delete(coupon.getId());
             } else {
                 validCoupon.setValidity(validity - 1);
+                validCouponsRepository.save(validCoupon);
             }
             return true;
         }

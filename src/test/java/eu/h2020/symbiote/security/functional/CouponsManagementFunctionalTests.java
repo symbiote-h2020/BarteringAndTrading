@@ -13,6 +13,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.ManageCouponService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import org.junit.After;
 import org.junit.Before;
@@ -32,12 +33,15 @@ import java.security.cert.CertificateException;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 //TODO @JT make more tests!
 @TestPropertySource("/core.properties")
-public class CouponsIssuingFunctionalTests extends
+public class CouponsManagementFunctionalTests extends
         AbstractBTMTestSuite {
 
+    @Autowired
+    CouponIssuer couponIssuer;
     @Autowired
     CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
@@ -82,7 +86,7 @@ public class CouponsIssuingFunctionalTests extends
                         KEY_STORE_PASSWORD,
                         PV_KEY_PASSWORD,
                         "registry-core-1"));
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        String loginRequest = CryptoHelper.buildJWTAcquisitionRequest(homeCredentials);
 
         String discreteCoupon = btmClient.getDiscreteCoupon(loginRequest);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromJWT(discreteCoupon);
@@ -91,4 +95,17 @@ public class CouponsIssuingFunctionalTests extends
         assertTrue(validCouponsRepository.exists(claimsFromToken.getJti()));
         assertEquals(couponValidity, validCouponsRepository.findOne(claimsFromToken.getJti()).getValidity());
     }
+
+    @Test
+    public void consumeDiscreteCouponRESTSuccess() throws JWTCreationException, MalformedJWTException, WrongCredentialsException, AAMException {
+
+        Coupon coupon = couponIssuer.getDiscreteCoupon();
+        assertTrue(validCouponsRepository.exists(coupon.getId()));
+        assertEquals(couponValidity, validCouponsRepository.findOne(coupon.getId()).getValidity());
+        assertNotNull(coupon.getCoupon());
+        boolean status = btmClient.consumeCoupon(coupon.getCoupon());
+        assertTrue(status);
+        assertEquals(couponValidity - 1, validCouponsRepository.findOne(coupon.getId()).getValidity().longValue());
+    }
+
 }

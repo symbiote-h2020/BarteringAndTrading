@@ -59,7 +59,7 @@ public class CouponIssuingUnitTests extends
                         KEY_STORE_PASSWORD,
                         PV_KEY_PASSWORD,
                         "registry-core-1"));
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        String loginRequest = CryptoHelper.buildJWTAcquisitionRequest(homeCredentials);
 
         Coupon discreteCoupon = manageCouponService.getDiscreteCoupon(loginRequest);
 
