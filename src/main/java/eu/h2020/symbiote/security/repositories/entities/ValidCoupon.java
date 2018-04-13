@@ -7,12 +7,12 @@ public class ValidCoupon {
     @Id
     private final String id;
     private final Coupon coupon;
-    private Long validity;
+    private long validity;
 
-    public ValidCoupon(Coupon coupon) {
-        this.id = coupon.getId();
+    public ValidCoupon(String id, Coupon coupon, long validity) {
+        this.id = id;
         this.coupon = coupon;
-        this.validity = (Long) coupon.getClaims().get("val");
+        this.validity = validity;
     }
 
     public Long getValidity() {

@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
 import eu.h2020.symbiote.security.repositories.ValidCouponsRepository;
 import eu.h2020.symbiote.security.repositories.entities.ValidCoupon;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -38,7 +39,7 @@ public class CouponIssuer {
     private final String deploymentId;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     @Value("${btm.deployment.coupon.validity}")
-    private Long couponValidity;
+    private long couponValidity;
 
     private ValidCouponsRepository validCouponsRepository;
 
@@ -52,7 +53,7 @@ public class CouponIssuer {
 
     public static String buildCouponJWT(Map<String, String> attributes,
                                         Coupon.Type voucherType,
-                                        Long tokenValidity,
+                                        long tokenValidity,
                                         String issuer,
                                         PublicKey issuerPublicKey,
                                         PrivateKey issuerPrivateKey) {
@@ -96,7 +97,8 @@ public class CouponIssuer {
                     certificationAuthorityHelper.getBTMPublicKey(),
                     certificationAuthorityHelper.getBTMPrivateKey()
             ));
-            validCouponsRepository.save(new ValidCoupon(coupon));
+            Claims claims = coupon.getClaims();
+            validCouponsRepository.save(new ValidCoupon(coupon.getId(), coupon, Long.parseLong(claims.get("val").toString())));
             return coupon;
         } catch (Exception e) {
             log.error(e);
