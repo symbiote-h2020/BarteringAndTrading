@@ -6,9 +6,8 @@ import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.repositories.ConsumedCouponsRepository;
-import eu.h2020.symbiote.security.repositories.RevokedCouponsRepository;
-import eu.h2020.symbiote.security.repositories.ValidCouponsRepository;
+import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
+import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
 import io.jsonwebtoken.Claims;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,19 +31,13 @@ public class ValidationHelper {
 
     // AAM configuration
     private final CertificationAuthorityHelper certificationAuthorityHelper;
-    private final RevokedCouponsRepository revokedCouponsRepository;
-    private final ConsumedCouponsRepository consumedCouponsRepository;
-    private final ValidCouponsRepository validCouponsRepository;
+    private final IssuedCouponsRepository issuedCouponsRepository;
 
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
-                            RevokedCouponsRepository revokedCouponsRepository,
-                            ConsumedCouponsRepository consumedCouponsRepository,
-                            ValidCouponsRepository validCouponsRepository) {
+                            IssuedCouponsRepository issuedCouponsRepository) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
-        this.revokedCouponsRepository = revokedCouponsRepository;
-        this.consumedCouponsRepository = consumedCouponsRepository;
-        this.validCouponsRepository = validCouponsRepository;
+        this.issuedCouponsRepository = issuedCouponsRepository;
     }
 
     public CouponValidationStatus validate(String coupon) throws MalformedJWTException {
@@ -63,16 +56,24 @@ public class ValidationHelper {
                 log.error("Issuer of this coupon is unknown.");
                 throw new MalformedJWTException();
             }
-            // check revoked JTI
-            if (revokedCouponsRepository.exists(claims.getId())) {
+            // check if coupon in db
+            if (!issuedCouponsRepository.exists(claims.getId())) {
+                return CouponValidationStatus.COUPON_NOT_IN_DB;
+            }
+            IssuedCoupon issuedCoupon = issuedCouponsRepository.findOne(claims.getId());
+
+            // check if coupon is revoked
+            if (issuedCoupon.getStatus().equals(IssuedCoupon.Status.REVOKED)) {
                 return CouponValidationStatus.REVOKED_COUPON;
             }
-            // check consumed coupons
-            if (consumedCouponsRepository.exists(claims.getId())) {
+
+            // check if coupon is consumed
+            if (issuedCoupon.getStatus().equals(IssuedCoupon.Status.CONSUMED)) {
                 return CouponValidationStatus.CONSUMED_COUPON;
             }
             // check in valid repo
-            if (!validCouponsRepository.exists(claims.getId())) {
+            if (!issuedCoupon.getStatus().equals(IssuedCoupon.Status.VALID)
+                    || issuedCoupon.getValidity() < 1) {
                 return CouponValidationStatus.UNKNOWN;
             }
         } catch (ValidationException e) {

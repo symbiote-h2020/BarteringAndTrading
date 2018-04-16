@@ -65,8 +65,8 @@ public class CouponIssuingUnitTests extends
 
         assertEquals(Coupon.Type.DISCRETE, discreteCoupon.getType());
         assertEquals(couponValidity.toString(), discreteCoupon.getClaims().get("val").toString());
-        assertTrue(validCouponsRepository.exists(discreteCoupon.getId()));
-        assertEquals(couponValidity, validCouponsRepository.findOne(discreteCoupon.getId()).getValidity());
+        assertTrue(issuedCouponsRepository.exists(discreteCoupon.getId()));
+        assertEquals(couponValidity, issuedCouponsRepository.findOne(discreteCoupon.getId()).getValidity());
     }
 
 

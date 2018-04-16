@@ -26,9 +26,9 @@ public class RevocationService {
     private final RevocationHelper revocationHelper;
     private final PasswordEncoder passwordEncoder;
     @Value("${btm.deployment.owner.username}")
-    private String AAMOwnerUsername;
+    private String BTMOwnerUsername;
     @Value("${btm.deployment.owner.password}")
-    private String AAMOwnerPassword;
+    private String BTMOwnerPassword;
 
     @Autowired
     public RevocationService(RevocationHelper revocationHelper, PasswordEncoder passwordEncoder) {
@@ -57,13 +57,13 @@ public class RevocationService {
     private RevocationResponse adminRevoke(RevocationRequest revocationRequest) throws
             ValidationException,
             MalformedJWTException {
-        if (!revocationRequest.getCredentials().getUsername().equals(AAMOwnerUsername)
-                || !passwordEncoder.matches(revocationRequest.getCredentials().getPassword(), passwordEncoder.encode(AAMOwnerPassword))) {
+        if (!revocationRequest.getCredentials().getUsername().equals(BTMOwnerUsername)
+                || !passwordEncoder.matches(revocationRequest.getCredentials().getPassword(), passwordEncoder.encode(BTMOwnerPassword))) {
             log.error(WrongCredentialsException.AUTHENTICATION_OF_USER_FAILED);
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
         }
-        if (!revocationRequest.getHomeTokenString().isEmpty()) {
-            return new RevocationResponse(this.revocationHelper.revokeCouponByAdmin(revocationRequest.getHomeTokenString()), HttpStatus.OK);
+        if (!revocationRequest.getCouponString().isEmpty()) {
+            return new RevocationResponse(this.revocationHelper.revokeCouponByAdmin(revocationRequest.getCouponString()), HttpStatus.OK);
         }
         log.error(InvalidArgumentsException.REQUEST_IS_INCORRECTLY_BUILT);
         return new RevocationResponse(false, HttpStatus.BAD_REQUEST);

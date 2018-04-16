@@ -2,10 +2,11 @@ package eu.h2020.symbiote.security.services.helpers;
 
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
-import eu.h2020.symbiote.security.repositories.ValidCouponsRepository;
-import eu.h2020.symbiote.security.repositories.entities.ValidCoupon;
+import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
+import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -41,14 +42,14 @@ public class CouponIssuer {
     @Value("${btm.deployment.coupon.validity}")
     private long couponValidity;
 
-    private ValidCouponsRepository validCouponsRepository;
+    private IssuedCouponsRepository issuedCouponsRepository;
 
     @Autowired
     public CouponIssuer(CertificationAuthorityHelper certificationAuthorityHelper,
-                        ValidCouponsRepository validCouponsRepository) {
+                        IssuedCouponsRepository issuedCouponsRepository) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getBTMInstanceIdentifier();
-        this.validCouponsRepository = validCouponsRepository;
+        this.issuedCouponsRepository = issuedCouponsRepository;
     }
 
     public static String buildCouponJWT(Map<String, String> attributes,
@@ -89,6 +90,9 @@ public class CouponIssuer {
             throws JWTCreationException {
         try {
             Map<String, String> attributes = new HashMap<>();
+            if (couponValidity < 1) {
+                throw new InvalidArgumentsException("Coupon with such validity would not be valid at all.");
+            }
             Coupon coupon = new Coupon(buildCouponJWT(
                     attributes,
                     Coupon.Type.DISCRETE,
@@ -98,7 +102,7 @@ public class CouponIssuer {
                     certificationAuthorityHelper.getBTMPrivateKey()
             ));
             Claims claims = coupon.getClaims();
-            validCouponsRepository.save(new ValidCoupon(coupon.getId(), coupon, Long.parseLong(claims.get("val").toString())));
+            issuedCouponsRepository.save(new IssuedCoupon(coupon.getId(), coupon, Long.parseLong(claims.get("val").toString()), IssuedCoupon.Status.VALID));
             return coupon;
         } catch (Exception e) {
             log.error(e);

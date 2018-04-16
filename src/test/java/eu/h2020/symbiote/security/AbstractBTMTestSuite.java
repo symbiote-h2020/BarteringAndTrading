@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.communication.BTMClient;
 import eu.h2020.symbiote.security.communication.IBTMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.ConsumedCouponsRepository;
-import eu.h2020.symbiote.security.repositories.RevokedCouponsRepository;
-import eu.h2020.symbiote.security.repositories.ValidCouponsRepository;
+import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -45,11 +43,7 @@ public abstract class AbstractBTMTestSuite {
     public ExpectedException expectedEx = ExpectedException.none();
     protected KeyPair userKeyPair;
     @Autowired
-    protected RevokedCouponsRepository revokedCouponsRepository;
-    @Autowired
-    protected ValidCouponsRepository validCouponsRepository;
-    @Autowired
-    protected ConsumedCouponsRepository consumedCouponsRepository;
+    protected IssuedCouponsRepository issuedCouponsRepository;
 
 
     protected ObjectMapper mapper = new ObjectMapper();
@@ -58,9 +52,9 @@ public abstract class AbstractBTMTestSuite {
     protected String coreInterfaceAddress;
 
     @Value("${btm.deployment.owner.username}")
-    protected String AAMOwnerUsername;
+    protected String BTMOwnerUsername;
     @Value("${btm.deployment.owner.password}")
-    protected String AAMOwnerPassword;
+    protected String BTMOwnerPassword;
     @Value("${btm.security.KEY_STORE_PASSWORD}")
     protected String KEY_STORE_PASSWORD;
     @Value("${btm.security.PV_KEY_PASSWORD}")
@@ -131,6 +125,6 @@ public abstract class AbstractBTMTestSuite {
 
         // cleanup db
 
-        revokedCouponsRepository.deleteAll();
+        issuedCouponsRepository.deleteAll();
     }
 }

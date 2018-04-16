@@ -2,22 +2,17 @@ package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractBTMTestSuite;
 import eu.h2020.symbiote.security.commons.Coupon;
-import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
 import eu.h2020.symbiote.security.services.RevocationService;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test suite for revocation (unit tests)
@@ -35,28 +30,23 @@ public class RevocationUnitTests extends
 
 
     @Test
-    public void revokeHomeTokenByAdminSuccess() throws
-            JWTCreationException,
-            MalformedJWTException {
+    public void revokeCouponByAdminSuccess() throws
+            JWTCreationException {
 
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildJWTAcquisitionRequest(homeCredentials);
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(loginRequest);
-        // acquiring valid token
+        // acquiring valid coupon
         Coupon discreteCoupon = couponIssuer.getDiscreteCoupon();
 
         RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
+        revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
-        revocationRequest.setHomeTokenString(discreteCoupon.toString());
+        revocationRequest.setCouponString(discreteCoupon.toString());
 
         // verify the user token is not yet revoked
-        assertFalse(revokedCouponsRepository.exists(discreteCoupon.getClaims().getId()));
+        assertEquals(IssuedCoupon.Status.VALID, issuedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
         // revocation
         revocationService.revoke(revocationRequest);
 
         // verify the user token is revoked
-        assertTrue(revokedCouponsRepository.exists(discreteCoupon.getClaims().getId()));
+        assertEquals(IssuedCoupon.Status.REVOKED, issuedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
     }
-
 }

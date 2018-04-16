@@ -8,10 +8,8 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.ConsumedCouponsRepository;
-import eu.h2020.symbiote.security.repositories.ValidCouponsRepository;
-import eu.h2020.symbiote.security.repositories.entities.ValidCoupon;
-import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
+import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
@@ -38,26 +36,20 @@ public class ManageCouponService {
     private static Log log = LogFactory.getLog(ManageCouponService.class);
     private final CouponIssuer couponIssuer;
     private final String coreInterfaceAddress;
-    private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final ValidationHelper validationHelper;
 
-    private final ValidCouponsRepository validCouponsRepository;
-    private final ConsumedCouponsRepository consumedCouponsRepository;
+    private final IssuedCouponsRepository issuedCouponsRepository;
 
 
     @Autowired
     public ManageCouponService(CouponIssuer couponIssuer,
                                @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
-                               CertificationAuthorityHelper certificationAuthorityHelper,
                                ValidationHelper validationHelper,
-                               ValidCouponsRepository validCouponsRepository,
-                               ConsumedCouponsRepository consumedCouponsRepository) {
+                               IssuedCouponsRepository issuedCouponsRepository) {
         this.couponIssuer = couponIssuer;
         this.coreInterfaceAddress = coreInterfaceAddress;
-        this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.validationHelper = validationHelper;
-        this.validCouponsRepository = validCouponsRepository;
-        this.consumedCouponsRepository = consumedCouponsRepository;
+        this.issuedCouponsRepository = issuedCouponsRepository;
     }
 
     public Coupon getDiscreteCoupon(String loginRequest) throws
@@ -100,16 +92,15 @@ public class ManageCouponService {
         if (!validationHelper.validate(couponString).equals(CouponValidationStatus.VALID)) {
             throw new InvalidArgumentsException("Coupon is not valid.");
         }
-        ValidCoupon validCoupon = validCouponsRepository.findOne(coupon.getId());
-        if (validCoupon.getCoupon().getType().equals(Coupon.Type.DISCRETE)) {
-            long validity = validCoupon.getValidity();
+        IssuedCoupon issuedCoupon = issuedCouponsRepository.findOne(coupon.getId());
+        if (issuedCoupon.getCoupon().getType().equals(Coupon.Type.DISCRETE)) {
+            long validity = issuedCoupon.getValidity();
             if (validity <= 1) {
-                consumedCouponsRepository.save(validCoupon.getCoupon());
-                validCouponsRepository.delete(coupon.getId());
-            } else {
-                validCoupon.setValidity(validity - 1);
-                validCouponsRepository.save(validCoupon);
+                issuedCoupon.setStatus(IssuedCoupon.Status.CONSUMED);
             }
+            issuedCoupon.setValidity(validity - 1);
+            issuedCouponsRepository.save(issuedCoupon);
+
             return true;
         }
         //TODO add PERIODIC coupon

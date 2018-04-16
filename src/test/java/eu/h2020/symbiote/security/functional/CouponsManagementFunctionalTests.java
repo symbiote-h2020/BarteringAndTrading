@@ -4,7 +4,7 @@ import eu.h2020.symbiote.security.AbstractBTMTestSuite;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
@@ -69,13 +69,13 @@ public class CouponsManagementFunctionalTests extends
             MalformedJWTException,
             JWTCreationException,
             WrongCredentialsException,
-            AAMException,
             CertificateException,
             UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
             NoSuchProviderException,
-            IOException {
+            IOException,
+            BTMException {
 
         String componentId = "testComponentId";
         HomeCredentials homeCredentials = new HomeCredentials(null,
@@ -92,20 +92,20 @@ public class CouponsManagementFunctionalTests extends
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromJWT(discreteCoupon);
         assertEquals(Coupon.Type.DISCRETE, Coupon.Type.valueOf(claimsFromToken.getTtyp()));
         assertEquals(couponValidity.toString(), claimsFromToken.getVal());
-        assertTrue(validCouponsRepository.exists(claimsFromToken.getJti()));
-        assertEquals(couponValidity, validCouponsRepository.findOne(claimsFromToken.getJti()).getValidity());
+        assertTrue(issuedCouponsRepository.exists(claimsFromToken.getJti()));
+        assertEquals(couponValidity, issuedCouponsRepository.findOne(claimsFromToken.getJti()).getValidity());
     }
 
     @Test
-    public void consumeDiscreteCouponRESTSuccess() throws JWTCreationException, MalformedJWTException, WrongCredentialsException, AAMException {
+    public void consumeDiscreteCouponRESTSuccess() throws JWTCreationException, MalformedJWTException, WrongCredentialsException, BTMException {
 
         Coupon coupon = couponIssuer.getDiscreteCoupon();
-        assertTrue(validCouponsRepository.exists(coupon.getId()));
-        assertEquals(couponValidity, validCouponsRepository.findOne(coupon.getId()).getValidity());
+        assertTrue(issuedCouponsRepository.exists(coupon.getId()));
+        assertEquals(couponValidity, issuedCouponsRepository.findOne(coupon.getId()).getValidity());
         assertNotNull(coupon.getCoupon());
         boolean status = btmClient.consumeCoupon(coupon.getCoupon());
         assertTrue(status);
-        assertEquals(couponValidity - 1, validCouponsRepository.findOne(coupon.getId()).getValidity().longValue());
+        assertEquals(couponValidity - 1, issuedCouponsRepository.findOne(coupon.getId()).getValidity().longValue());
     }
 
 }

@@ -4,7 +4,7 @@ package eu.h2020.symbiote.security.functional;
 import eu.h2020.symbiote.security.AbstractBTMTestSuite;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import org.junit.Test;
@@ -23,10 +23,12 @@ public class ValidationFunctionalTests extends
     CouponIssuer couponIssuer;
 
     @Test
-    public void validateCouponRESTSuccess() throws JWTCreationException, AAMException {
+    public void validateCouponRESTSuccess() throws
+            JWTCreationException,
+            BTMException {
 
         Coupon coupon = couponIssuer.getDiscreteCoupon();
-        assertTrue(validCouponsRepository.exists(coupon.getId()));
+        assertTrue(issuedCouponsRepository.exists(coupon.getId()));
         assertNotNull(coupon.getCoupon());
 
         CouponValidationStatus status = btmClient.validateCoupon(coupon.getCoupon());

@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security.repositories;
 
 import eu.h2020.symbiote.security.commons.Coupon;
-import eu.h2020.symbiote.security.repositories.entities.ValidCoupon;
+import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
@@ -9,5 +9,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  *
  * @author Jakub Toczek (PSNC)
  */
-public interface ValidCouponsRepository extends MongoRepository<ValidCoupon, String> {
+public interface IssuedCouponsRepository extends MongoRepository<IssuedCoupon, String> {
 }
