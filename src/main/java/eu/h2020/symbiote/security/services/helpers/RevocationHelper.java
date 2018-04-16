@@ -44,9 +44,11 @@ public class RevocationHelper {
         }
         JWTClaims couponClaims = JWTEngine.getClaimsFromJWT(couponString);
         if (!certificationAuthorityHelper.getBTMInstanceIdentifier().equals(couponClaims.getIss())) {
+            log.error("Coupon was not issued by this BTM. The issuer is: " + couponClaims.getIss());
             return false;
         }
         if (!couponClaims.getIpk().equals(Base64.getEncoder().encodeToString(certificationAuthorityHelper.getBTMPublicKey().getEncoded()))) {
+            log.error("Public key from coupon differs from owned by BTM.");
             return false;
         }
         if (!issuedCouponsRepository.exists(couponClaims.getJti())) {
