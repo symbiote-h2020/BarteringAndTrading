@@ -102,7 +102,7 @@ public class CouponIssuer {
                     certificationAuthorityHelper.getBTMPrivateKey()
             ));
             Claims claims = coupon.getClaims();
-            issuedCouponsRepository.save(new IssuedCoupon(coupon.getId(), coupon, Long.parseLong(claims.get("val").toString()), IssuedCoupon.Status.VALID));
+            issuedCouponsRepository.save(new IssuedCoupon(coupon.getId(), coupon, claims.getIssuer(), Long.parseLong(claims.get("val").toString()), IssuedCoupon.Status.VALID));
             return coupon;
         } catch (Exception e) {
             log.error(e);

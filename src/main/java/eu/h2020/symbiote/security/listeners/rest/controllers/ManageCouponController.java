@@ -38,7 +38,7 @@ public class ManageCouponController implements IManageCoupon {
         this.manageCouponService = manageCouponService;
     }
 
-    //L1 Diagrams - getDiscreteCoupon()
+    //L1 Diagrams - getCoupon()
     @ApiOperation(value = "Issues a Discrete Coupon")
     @ApiResponses({
             @ApiResponse(code = 400, message = "Received coupon was malformed"),
@@ -48,7 +48,7 @@ public class ManageCouponController implements IManageCoupon {
             @RequestHeader(SecurityConstants.COUPON_HEADER_NAME)
             @ApiParam(value = "JWS built in accordance to Symbiote Security Cryptohelper", required = true) String loginRequest) {
         try {
-            Coupon coupon = manageCouponService.getDiscreteCoupon(loginRequest);
+            Coupon coupon = manageCouponService.getCoupon(loginRequest);
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.COUPON_HEADER_NAME, coupon.getCoupon());
             return new ResponseEntity<>(headers, HttpStatus.OK);
