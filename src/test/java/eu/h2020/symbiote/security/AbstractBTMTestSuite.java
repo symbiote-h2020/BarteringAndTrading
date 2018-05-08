@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.communication.BTMClient;
 import eu.h2020.symbiote.security.communication.IBTMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
+import eu.h2020.symbiote.security.repositories.NotificationsRepository;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -44,6 +45,8 @@ public abstract class AbstractBTMTestSuite {
     protected KeyPair userKeyPair;
     @Autowired
     protected IssuedCouponsRepository issuedCouponsRepository;
+    @Autowired
+    protected NotificationsRepository notificationsRepository;
 
 
     protected ObjectMapper mapper = new ObjectMapper();
