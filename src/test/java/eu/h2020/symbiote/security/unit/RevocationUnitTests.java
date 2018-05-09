@@ -26,7 +26,7 @@ import static org.junit.Assert.assertFalse;
  *
  * @author Jakub Toczek (PSNC)
  */
-@TestPropertySource("/core.properties")
+@TestPropertySource("/service.properties")
 public class RevocationUnitTests extends
         AbstractBTMTestSuite {
 

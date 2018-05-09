@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.ManageCouponService;
 import org.junit.After;
@@ -21,49 +22,68 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
-@TestPropertySource("/core.properties")
-public class CouponIssuingUnitTests extends
+@TestPropertySource("/service.properties")
+public class CouponManagementUnitTests extends
         AbstractBTMTestSuite {
 
     @Autowired
     ManageCouponService manageCouponService;
+
     @Value("${btm.deployment.coupon.validity}")
     private Long couponValidity;
+    private AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
+
 
     @Before
     public void before() {
         ReflectionTestUtils.setField(manageCouponService, "coreInterfaceAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(manageCouponService, "btmCoreAddress", serverAddress + "/test/caam/btm");
     }
 
     @After
     public void after() {
         ReflectionTestUtils.setField(manageCouponService, "coreInterfaceAddress", serverAddress);
+        ReflectionTestUtils.setField(manageCouponService, "btmCoreAddress", serverAddress + "/btm");
     }
 
     @Test
-    public void getDiscreteCouponSuccess() throws CertificateException, JWTCreationException, ValidationException, MalformedJWTException, InvalidArgumentsException, IOException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, UnrecoverableKeyException, BTMException {
-
+    public void getDiscreteCouponExchangeNeededSuccess() throws CertificateException, JWTCreationException, ValidationException, MalformedJWTException, InvalidArgumentsException, IOException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, UnrecoverableKeyException, BTMException {
         String componentId = "testComponentId";
         HomeCredentials homeCredentials = new HomeCredentials(null,
                 SecurityConstants.CORE_AAM_INSTANCE_ID,
                 componentId,
                 null,
-                getPrivateKeyTestFromKeystore("keystores/core.p12",
+                getPrivateKeyTestFromKeystore("keystores/service_btm.p12",
                         KEY_STORE_PASSWORD,
                         PV_KEY_PASSWORD,
-                        "registry-core-1"));
-        String loginRequest = CryptoHelper.buildJWTAcquisitionRequest(homeCredentials);
+                        "btm"));
+        String loginRequest = CryptoHelper.buildCouponAcquisitionRequest(homeCredentials, dummyPlatformId);
 
         Coupon discreteCoupon = manageCouponService.getCoupon(loginRequest);
 
         assertEquals(Coupon.Type.DISCRETE, discreteCoupon.getType());
-        assertEquals(couponValidity.toString(), discreteCoupon.getClaims().get("val").toString());
+        assertEquals("100", discreteCoupon.getClaims().get("val").toString());
         assertTrue(issuedCouponsRepository.exists(discreteCoupon.getId()));
-        assertEquals(couponValidity, issuedCouponsRepository.findOne(discreteCoupon.getId()).getValidity());
+    }
+
+    @Test
+    public void getDiscreteCouponExchangeNeededFailNoConnection() {
+        //TODO
+    }
+
+    //TODO
+    /*@Test
+    public void getDiscreteCouponExchangeNeededFailNoAgreement(){
+
+    }*/
+    @Test
+    public void getDiscreteCouponNoExchangeSuccess() {
+        //TODO
     }
 
 

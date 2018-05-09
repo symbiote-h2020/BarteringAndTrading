@@ -22,6 +22,10 @@ public interface IManageCoupon {
     @PostMapping(value = SecurityConstants.BTM_GET_DISCRETE_COUPON)
     ResponseEntity<String> getDiscreteCoupon(@RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String loginRequest);
 
-    @PostMapping(value = SecurityConstants.BTM_CONSUME_COUPON)
-    ResponseEntity<String> consumeCoupon(@RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString);
+    /**
+     * @param couponString coupon for exchange
+     * @return Exchanged coupon used to access resources offered in federated platform
+     */
+    @PostMapping(value = SecurityConstants.BTM_EXCHANGE_COUPONS)
+    ResponseEntity<String> exchangeCoupon(@RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString);
 }

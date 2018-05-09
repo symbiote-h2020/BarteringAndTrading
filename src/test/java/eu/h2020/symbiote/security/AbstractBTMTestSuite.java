@@ -5,7 +5,7 @@ import eu.h2020.symbiote.security.communication.BTMClient;
 import eu.h2020.symbiote.security.communication.IBTMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
-import eu.h2020.symbiote.security.repositories.NotificationsRepository;
+import eu.h2020.symbiote.security.utils.DummyCoreAAMAndBTM;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -43,10 +43,11 @@ public abstract class AbstractBTMTestSuite {
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
     protected KeyPair userKeyPair;
+    protected String dummyPlatformId = "dummy-platform";
     @Autowired
     protected IssuedCouponsRepository issuedCouponsRepository;
     @Autowired
-    protected NotificationsRepository notificationsRepository;
+    protected DummyCoreAAMAndBTM dummyCoreAAMAndBTM;
 
 
     protected ObjectMapper mapper = new ObjectMapper();
@@ -125,7 +126,7 @@ public abstract class AbstractBTMTestSuite {
         serverAddress = "https://localhost:" + port;
         btmClient = new BTMClient(serverAddress);
         userKeyPair = CryptoHelper.createKeyPair();
-
+        dummyCoreAAMAndBTM.port = port;
         // cleanup db
 
         issuedCouponsRepository.deleteAll();

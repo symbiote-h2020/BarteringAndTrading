@@ -18,13 +18,13 @@ public class ComponentSecurityHandlerProvider {
                                             @Value("${btm.deployment.owner.username}") String AAMOwnerUsername,
                                             @Value("${btm.deployment.owner.password}") String AAMOwnerPassword,
                                             @Value("${symbIoTe.localaam.url}") String localAAMAddress,
-                                            @Value("${btm.componentId}") String crmComponentId) throws
+                                            @Value("${btm.platformId}") String platformId) throws
             SecurityHandlerException {
 
         componentSecurityHandler = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
                 keyStoreFileName,
                 keyStorePassword,
-                crmComponentId,
+                "btm@" + platformId,
                 localAAMAddress,
                 AAMOwnerUsername,
                 AAMOwnerPassword

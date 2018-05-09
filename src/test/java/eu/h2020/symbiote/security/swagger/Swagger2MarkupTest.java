@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         properties = {"eureka.client.enabled=false",
                 "spring.sleuth.enabled=false"})
 @AutoConfigureMockMvc
-@TestPropertySource("/core.properties")
+@TestPropertySource("/service.properties")
 public class Swagger2MarkupTest {
 
     @Autowired

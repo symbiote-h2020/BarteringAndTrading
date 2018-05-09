@@ -18,6 +18,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -34,6 +37,7 @@ import java.util.Map;
  * @author Jakub Toczek (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
+@Profile("service")
 @Service
 public class ManageCouponService {
 
@@ -44,7 +48,8 @@ public class ManageCouponService {
     private final ValidationHelper validationHelper;
     private final String btmCoreAddress;
     private final String platformId;
-    private final RestTemplate restTemplate = new RestTemplate();
+
+    private RestTemplate restTemplate = new RestTemplate();
 
     private final IssuedCouponsRepository issuedCouponsRepository;
 
@@ -63,27 +68,33 @@ public class ManageCouponService {
         this.issuedCouponsRepository = issuedCouponsRepository;
     }
 
-    public Coupon exchangeCoupon(String btmAddress, Coupon localCoupon) throws BTMException {
-        ResponseEntity<Coupon> exchangeResponse = restTemplate.postForEntity(
+    public Coupon sendCouponForExchange(String btmAddress, Coupon localCoupon) throws BTMException, ValidationException {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(SecurityConstants.COUPON_HEADER_NAME, localCoupon.getCoupon());
+        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+        ResponseEntity<String> exchangeResponse = restTemplate.postForEntity(
                 btmAddress + SecurityConstants.BTM_EXCHANGE_COUPONS,
-                localCoupon, Coupon.class);
+                entity, String.class);
         if (!exchangeResponse.getStatusCode().equals(HttpStatus.OK)) {
             throw new BTMException("Federated BTM refused to exchange coupons.");
         }
-        return exchangeResponse.getBody();
+        //TODO
+        String coupon = exchangeResponse.getHeaders().get(SecurityConstants.COUPON_HEADER_NAME).get(0);
+        return new Coupon(coupon);
     }
 
     private boolean notifyCore(Coupon localCoupon) {
         Notification notification = new Notification(localCoupon.getCoupon(), platformId);
-        ResponseEntity<String> exchangeResponse;
+        ResponseEntity<String> notificationResponse;
         try {
-            exchangeResponse = restTemplate.postForEntity(
+            notificationResponse = restTemplate.postForEntity(
                     btmCoreAddress + SecurityConstants.BTM_NOTIFICATION,
                     notification, String.class);
         } catch (Exception e) {
+            log.error(e.getMessage());
             return false;
         }
-        return exchangeResponse.getStatusCode().equals(HttpStatus.OK);
+        return notificationResponse.getStatusCode().equals(HttpStatus.OK);
     }
 
     public Coupon getCoupon(String loginRequest) throws
@@ -102,27 +113,20 @@ public class ManageCouponService {
         //search for saved coupons
         HashSet<IssuedCoupon> issuedCoupons = issuedCouponsRepository.findByIssuer(claims.getSub());
         if (issuedCoupons.isEmpty()) {
-            return getExchangedCoupon(claims);
+            return getFederatedCoupon(claims);
         } else {
             for (IssuedCoupon issuedCoupon : issuedCoupons) {
                 if (issuedCoupon.getStatus().equals(IssuedCoupon.Status.VALID))
                     return issuedCoupon.getCoupon();
             }
-            return getExchangedCoupon(claims);
+            return getFederatedCoupon(claims);
         }
 
     }
 
-    private Coupon getExchangedCoupon(JWTClaims claims) throws ValidationException, JWTCreationException, BTMException {
+    private Coupon getFederatedCoupon(JWTClaims claims) throws ValidationException, JWTCreationException, BTMException {
         // search for federated btm
-        AAMClient aamClient = new AAMClient(coreInterfaceAddress);
-        Map<String, AAM> availableAAMs;
-        try {
-            availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
-        } catch (AAMException e) {
-            log.error(e);
-            throw new ValidationException("Core AAM is not available. Please, check your connection.");
-        }
+        Map<String, AAM> availableAAMs = getAvailableAAMs();
         if (!availableAAMs.containsKey(claims.getSub())) {
             throw new ValidationException("Platform url is not achievable. Check, if platform is registered in Core.");
         }
@@ -133,13 +137,25 @@ public class ManageCouponService {
         Coupon coupon = couponIssuer.getDiscreteCoupon();
         // notify Core BTM about creation of coupon
         if (!notifyCore(coupon)) {
-            throw new BTMException("Federated BTM refused to exchange coupons.");
+            throw new BTMException("Problem with notification to Core about coupon creation occurred.");
         }
         //exchange coupon
-        Coupon exchangedCoupon = exchangeCoupon(btmAddress, coupon);
+        Coupon exchangedCoupon = sendCouponForExchange(btmAddress, coupon);
         Claims exchangedClaims = exchangedCoupon.getClaims();
         issuedCouponsRepository.save(new IssuedCoupon(exchangedCoupon.getId(), exchangedCoupon, exchangedClaims.getIssuer(), Long.parseLong(exchangedClaims.get("val").toString()), IssuedCoupon.Status.VALID));
         return exchangedCoupon;
+    }
+
+    private Map<String, AAM> getAvailableAAMs() throws ValidationException {
+        AAMClient aamClient = new AAMClient(coreInterfaceAddress);
+        Map<String, AAM> availableAAMs;
+        try {
+            availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
+        } catch (AAMException e) {
+            log.error(e);
+            throw new ValidationException("Core AAM is not available. Please, check your connection.");
+        }
+        return availableAAMs;
     }
 
     /*
@@ -177,7 +193,8 @@ public class ManageCouponService {
     public boolean consumeCoupon(String couponString) throws
             MalformedJWTException,
             InvalidArgumentsException,
-            ValidationException {
+            ValidationException,
+            BTMException {
         Coupon coupon = new Coupon(couponString);
         // validate coupon
         if (!validationHelper.validate(couponString).equals(CouponValidationStatus.VALID)) {
@@ -192,10 +209,50 @@ public class ManageCouponService {
             issuedCoupon.setValidity(validity - 1);
             issuedCouponsRepository.save(issuedCoupon);
 
+            if (!notifyCore(coupon)) {
+                throw new BTMException("Problem with notification to Core about coupon usage occurred.");
+            }
             return true;
         }
+
         //TODO add PERIODIC coupon
         return false;
+
+    }
+
+    /**
+     * @param couponString received coupon for exchange
+     * @return exchanged coupon
+     * @throws ValidationException  received coupon is not valid
+     * @throws JWTCreationException received coupon is malformed and wasn't processed
+     * @throws BTMException         error during Core notification occured
+     */
+    public Coupon exchangeCoupon(String couponString) throws
+            ValidationException,
+            JWTCreationException,
+            BTMException {
+        Coupon receivedCoupon = new Coupon(couponString);
+        //TODO validate in core
+        //TODO validate B&T deal
+        // generate coupon for exchange
+        Coupon coupon = couponIssuer.getDiscreteCoupon();
+        // notify core about creation of the coupon
+        if (!notifyCore(coupon)) {
+            throw new BTMException("Problem with notification to Core about coupon creation occurred.");
+        }
+        // save exchanged coupon
+        issuedCouponsRepository.save(new IssuedCoupon(coupon.getId(),
+                coupon,
+                coupon.getClaims().getIssuer(),
+                Long.parseLong(coupon.getClaims().get("val").toString()),
+                IssuedCoupon.Status.VALID));
+        // save received coupon
+        issuedCouponsRepository.save(new IssuedCoupon(receivedCoupon.getId(),
+                receivedCoupon,
+                receivedCoupon.getClaims().getIssuer(),
+                Long.parseLong(receivedCoupon.getClaims().get("val").toString()),
+                IssuedCoupon.Status.VALID));
+        return coupon;
 
     }
 }
