@@ -7,7 +7,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
 import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
 import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -15,6 +14,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.security.PrivateKey;
@@ -31,6 +31,7 @@ import java.util.Map;
  * @author Mikołaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
  */
+@Profile("service")
 @Component
 public class CouponIssuer {
 
@@ -101,8 +102,7 @@ public class CouponIssuer {
                     certificationAuthorityHelper.getBTMPublicKey(),
                     certificationAuthorityHelper.getBTMPrivateKey()
             ));
-            Claims claims = coupon.getClaims();
-            issuedCouponsRepository.save(new IssuedCoupon(coupon.getId(), coupon, claims.getIssuer(), Long.parseLong(claims.get("val").toString()), IssuedCoupon.Status.VALID));
+            issuedCouponsRepository.save(new IssuedCoupon(coupon));
             return coupon;
         } catch (Exception e) {
             log.error(e);

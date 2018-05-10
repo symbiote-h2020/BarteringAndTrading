@@ -11,6 +11,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Service;
  * Spring service used to revoke tokens and certificates.
  * * @author Jakub Toczek (PSNC)
  */
-
+@Profile("service")
 @Service
 public class RevocationService {
     private static Log log = LogFactory.getLog(RevocationService.class);

@@ -10,6 +10,7 @@ import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.Base64;
@@ -20,6 +21,7 @@ import java.util.Base64;
  * @author Mikołaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
  */
+@Profile("service")
 @Component
 public class RevocationHelper {
     private static final Logger log = LoggerFactory.getLogger(RevocationHelper.class);

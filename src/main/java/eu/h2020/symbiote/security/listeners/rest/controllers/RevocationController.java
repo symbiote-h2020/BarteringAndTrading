@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.listeners.rest.interfaces.IRevokeCredentials;
 import eu.h2020.symbiote.security.services.RevocationService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Mikolaj Dobski (PSNC)
  * @see RevocationService
  */
+@Profile("service")
 @Api(value = "/docs/revokeCredentials", description = "Exposes services allowing SymbIoTe actors (users) to revoke their coupons")
 @RestController
 public class RevocationController implements IRevokeCredentials {

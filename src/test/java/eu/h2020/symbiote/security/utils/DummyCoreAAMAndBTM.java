@@ -43,6 +43,7 @@ public class DummyCoreAAMAndBTM {
     private static final String PATH = "/test/caam";
     private static final String platform1Id = "dummy-platform";
     public int port;
+    public boolean notify = true;
     private Certificate coreCert;
     private AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
 
@@ -93,8 +94,11 @@ public class DummyCoreAAMAndBTM {
 
     @PostMapping(path = PATH + "/btm" + SecurityConstants.BTM_NOTIFICATION)
     public ResponseEntity notification(@RequestBody Notification notification) {
-        log.info("Coupon notified: " + notification.getCouponString());
-        return new ResponseEntity(HttpStatus.OK);
+        if (notify) {
+            log.info("Coupon notified: " + notification.getCouponString());
+            return new ResponseEntity(HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
 

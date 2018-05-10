@@ -13,7 +13,6 @@ import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
 import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import io.jsonwebtoken.Claims;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +23,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashSet;
@@ -41,17 +42,15 @@ import java.util.Map;
 @Service
 public class ManageCouponService {
 
+    private static final String BTM_SUFFIX = "/btm";
     private static Log log = LogFactory.getLog(ManageCouponService.class);
     private final CouponIssuer couponIssuer;
     private final String coreInterfaceAddress;
-    private static final String BTM_SUFFIX = "/btm";
     private final ValidationHelper validationHelper;
     private final String btmCoreAddress;
     private final String platformId;
-
-    private RestTemplate restTemplate = new RestTemplate();
-
     private final IssuedCouponsRepository issuedCouponsRepository;
+    private RestTemplate restTemplate = new RestTemplate();
 
 
     @Autowired
@@ -77,13 +76,12 @@ public class ManageCouponService {
             exchangeResponse = restTemplate.postForEntity(
                     btmAddress + SecurityConstants.BTM_EXCHANGE_COUPONS,
                     entity, String.class);
-        } catch (Exception e) {
+        } catch (HttpServerErrorException | HttpClientErrorException e) {
+            if (e.getStatusCode().equals(HttpStatus.FORBIDDEN)) {
+                throw new BTMException("Federated BTM refused to exchange coupons.");
+            }
             throw new BTMException("Federated BTM is unavailable.");
         }
-        if (!exchangeResponse.getStatusCode().equals(HttpStatus.OK)) {
-            throw new BTMException("Federated BTM refused to exchange coupons.");
-        }
-        //TODO
         String coupon = exchangeResponse.getHeaders().get(SecurityConstants.COUPON_HEADER_NAME).get(0);
         return new Coupon(coupon);
     }
@@ -116,13 +114,13 @@ public class ManageCouponService {
         }
         //TODO ISS check
         //search for saved coupons
-        HashSet<IssuedCoupon> issuedCoupons = issuedCouponsRepository.findByIssuer(claims.getSub());
+        HashSet<IssuedCoupon> issuedCoupons = issuedCouponsRepository.findAllByIssuer(claims.getSub());
         if (issuedCoupons.isEmpty()) {
             return getFederatedCoupon(claims);
         } else {
             for (IssuedCoupon issuedCoupon : issuedCoupons) {
                 if (issuedCoupon.getStatus().equals(IssuedCoupon.Status.VALID))
-                    return issuedCoupon.getCoupon();
+                    return new Coupon(issuedCoupon.getCouponString());
             }
             return getFederatedCoupon(claims);
         }
@@ -146,8 +144,7 @@ public class ManageCouponService {
         }
         //exchange coupon
         Coupon exchangedCoupon = sendCouponForExchange(btmAddress, coupon);
-        Claims exchangedClaims = exchangedCoupon.getClaims();
-        issuedCouponsRepository.save(new IssuedCoupon(exchangedCoupon.getId(), exchangedCoupon, exchangedClaims.getIssuer(), Long.parseLong(exchangedClaims.get("val").toString()), IssuedCoupon.Status.VALID));
+        issuedCouponsRepository.save(new IssuedCoupon(exchangedCoupon));
         return exchangedCoupon;
     }
 
@@ -206,7 +203,7 @@ public class ManageCouponService {
             throw new InvalidArgumentsException("Coupon is not valid.");
         }
         IssuedCoupon issuedCoupon = issuedCouponsRepository.findOne(coupon.getId());
-        if (issuedCoupon.getCoupon().getType().equals(Coupon.Type.DISCRETE)) {
+        if (new Coupon(issuedCoupon.getCouponString()).getType().equals(Coupon.Type.DISCRETE)) {
             long validity = issuedCoupon.getValidity();
             if (validity <= 1) {
                 issuedCoupon.setStatus(IssuedCoupon.Status.CONSUMED);
@@ -246,17 +243,9 @@ public class ManageCouponService {
             throw new BTMException("Problem with notification to Core about coupon creation occurred.");
         }
         // save exchanged coupon
-        issuedCouponsRepository.save(new IssuedCoupon(coupon.getId(),
-                coupon,
-                coupon.getClaims().getIssuer(),
-                Long.parseLong(coupon.getClaims().get("val").toString()),
-                IssuedCoupon.Status.VALID));
+        issuedCouponsRepository.save(new IssuedCoupon(coupon));
         // save received coupon
-        issuedCouponsRepository.save(new IssuedCoupon(receivedCoupon.getId(),
-                receivedCoupon,
-                receivedCoupon.getClaims().getIssuer(),
-                Long.parseLong(receivedCoupon.getClaims().get("val").toString()),
-                IssuedCoupon.Status.VALID));
+        issuedCouponsRepository.save(new IssuedCoupon(receivedCoupon));
         return coupon;
 
     }

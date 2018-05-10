@@ -2,20 +2,41 @@ package eu.h2020.symbiote.security.repositories.entities;
 
 import eu.h2020.symbiote.security.commons.Coupon;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 public class IssuedCoupon {
     @Id
-    private final String id;
-    private final Coupon coupon;
-    private final String issuer;
+    private String id;
+    private String couponString;
+    @Indexed
+    private String issuer;
     private long validity;
     private Status status;
 
-    public IssuedCoupon(String id, Coupon coupon, String issuer, long validity, Status status) {
-        this.id = id;
-        this.coupon = coupon;
-        this.issuer = issuer;
+    public IssuedCoupon(Coupon coupon) {
+        this.id = coupon.getId();
+        this.couponString = coupon.getCoupon();
+        this.issuer = coupon.getClaims().getIssuer();
+        this.validity = Long.parseLong(coupon.getClaims().get("val").toString());
+        this.status = Status.VALID;
+    }
+
+    /**
+     * Constructor used by MongoDB
+     */
+
+    public IssuedCoupon() {
+    }
+
+    public void setValidity(long validity) {
         this.validity = validity;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
         this.status = status;
     }
 
@@ -27,24 +48,28 @@ public class IssuedCoupon {
         this.validity = validity;
     }
 
-    public Coupon getCoupon() {
-        return coupon;
+    public String getCouponString() {
+        return couponString;
     }
 
-    public Status getStatus() {
-        return status;
-    }
-
-    public void setStatus(Status status) {
-        this.status = status;
+    public void setCouponString(String couponString) {
+        this.couponString = couponString;
     }
 
     public String getIssuer() {
         return issuer;
     }
 
+    public void setIssuer(String issuer) {
+        this.issuer = issuer;
+    }
+
     public String getId() {
         return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public enum Status {
@@ -52,4 +77,6 @@ public class IssuedCoupon {
         CONSUMED,
         REVOKED
     }
+
+
 }

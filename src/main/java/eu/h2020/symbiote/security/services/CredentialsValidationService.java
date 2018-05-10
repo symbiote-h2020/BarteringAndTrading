@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 /**
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
  *
  * @author Piotr Kicki (PSNC)
  */
+@Profile("service")
 @Service
 public class CredentialsValidationService {
     private final ValidationHelper validationHelper;

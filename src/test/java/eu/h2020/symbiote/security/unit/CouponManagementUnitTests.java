@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
 import eu.h2020.symbiote.security.services.ManageCouponService;
 import eu.h2020.symbiote.security.utils.DummyPlatformBTM;
 import org.junit.After;
@@ -22,7 +23,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
 
+import static eu.h2020.symbiote.security.services.helpers.CouponIssuer.buildCouponJWT;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -45,6 +48,8 @@ public class CouponManagementUnitTests extends
     public void before() {
         ReflectionTestUtils.setField(manageCouponService, "coreInterfaceAddress", serverAddress + "/test/caam");
         ReflectionTestUtils.setField(manageCouponService, "btmCoreAddress", serverAddress + "/test/caam/btm");
+        dummyPlatformBTM.exchangeState = DummyPlatformBTM.ExchangeState.OK;
+        dummyCoreAAMAndBTM.notify = true;
     }
 
     @After
@@ -100,6 +105,33 @@ public class CouponManagementUnitTests extends
     }
 
     @Test(expected = BTMException.class)
+    public void getDiscreteCouponExchangeNeededFailCoreNotNotified() throws
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            IOException,
+            MalformedJWTException,
+            InvalidArgumentsException,
+            ValidationException,
+            BTMException,
+            JWTCreationException {
+        dummyCoreAAMAndBTM.notify = false;
+        HomeCredentials homeCredentials = new HomeCredentials(null,
+                SecurityConstants.CORE_AAM_INSTANCE_ID,
+                componentId,
+                null,
+                getPrivateKeyTestFromKeystore("keystores/service_btm.p12",
+                        KEY_STORE_PASSWORD,
+                        PV_KEY_PASSWORD,
+                        "btm"));
+        String couponRequest = CryptoHelper.buildCouponAcquisitionRequest(homeCredentials, dummyPlatformId);
+
+        manageCouponService.getCoupon(couponRequest);
+    }
+
+    @Test(expected = BTMException.class)
     public void getDiscreteCouponExchangeNeededFailNoFederatedPlatformConnection() throws
             CertificateException,
             UnrecoverableKeyException,
@@ -138,6 +170,20 @@ public class CouponManagementUnitTests extends
             ValidationException,
             BTMException,
             JWTCreationException {
+        // make issuedCoupons not empty
+        Coupon coupon = new Coupon(buildCouponJWT(
+                new HashMap<>(),
+                Coupon.Type.DISCRETE,
+                100,
+                dummyPlatformId,
+                //for now, doesnt matter what the keys are
+                userKeyPair.getPublic(),
+                userKeyPair.getPrivate()
+        ));
+        IssuedCoupon issuedCoupon = new IssuedCoupon(coupon);
+        issuedCoupon.setStatus(IssuedCoupon.Status.CONSUMED);
+        issuedCouponsRepository.save(issuedCoupon);
+
         dummyPlatformBTM.exchangeState = DummyPlatformBTM.ExchangeState.REFUSED;
         HomeCredentials homeCredentials = new HomeCredentials(null,
                 SecurityConstants.CORE_AAM_INSTANCE_ID,
@@ -181,21 +227,73 @@ public class CouponManagementUnitTests extends
         }
         couponRequest = CryptoHelper.buildCouponAcquisitionRequest(homeCredentials, null);
         manageCouponService.getCoupon(couponRequest);
-
-
     }
 
+    @Test(expected = ValidationException.class)
+    public void getDiscreteCouponExchangeNeededFailNoPlatformInAvailableAAMs() throws
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            IOException,
+            MalformedJWTException,
+            InvalidArgumentsException,
+            ValidationException,
+            BTMException,
+            JWTCreationException {
+        dummyPlatformBTM.exchangeState = DummyPlatformBTM.ExchangeState.REFUSED;
+        HomeCredentials homeCredentials = new HomeCredentials(null,
+                SecurityConstants.CORE_AAM_INSTANCE_ID,
+                componentId,
+                null,
+                getPrivateKeyTestFromKeystore("keystores/service_btm.p12",
+                        KEY_STORE_PASSWORD,
+                        PV_KEY_PASSWORD,
+                        "btm"));
+        String couponRequest = CryptoHelper.buildCouponAcquisitionRequest(homeCredentials, "notAvailablePlatform");
+        manageCouponService.getCoupon(couponRequest);
+    }
 
     @Test
-    public void getDiscreteCouponNoExchangeSuccess() {
-        //TODO
+    public void getDiscreteCouponNoExchangeSuccess() throws
+            ValidationException,
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            IOException,
+            MalformedJWTException,
+            InvalidArgumentsException,
+            BTMException,
+            JWTCreationException {
+        Coupon coupon = new Coupon(buildCouponJWT(
+                new HashMap<>(),
+                Coupon.Type.DISCRETE,
+                100,
+                dummyPlatformId,
+                //for now, doesnt matter what the keys are
+                userKeyPair.getPublic(),
+                userKeyPair.getPrivate()
+        ));
+        issuedCouponsRepository.save(new IssuedCoupon(coupon));
+        assertEquals(1, issuedCouponsRepository.count());
+        HomeCredentials homeCredentials = new HomeCredentials(null,
+                SecurityConstants.CORE_AAM_INSTANCE_ID,
+                componentId,
+                null,
+                getPrivateKeyTestFromKeystore("keystores/service_btm.p12",
+                        KEY_STORE_PASSWORD,
+                        PV_KEY_PASSWORD,
+                        "btm"));
+        String couponRequest = CryptoHelper.buildCouponAcquisitionRequest(homeCredentials, dummyPlatformId);
+        Coupon acquiredCoupon = manageCouponService.getCoupon(couponRequest);
+        assertEquals(1, issuedCouponsRepository.count());
+        assertEquals(coupon.getCoupon(), acquiredCoupon.getCoupon());
+        assertEquals(coupon.getId(), acquiredCoupon.getId());
+        assertEquals(coupon.getType(), acquiredCoupon.getType());
+        assertEquals(coupon.getClaims().get("val"), acquiredCoupon.getClaims().get("val"));
     }
-
-    //TODO
-    /*@Test
-    public void getDiscreteCouponExchangeNeededFailNoAgreement(){
-
-    }*/
-
 
 }

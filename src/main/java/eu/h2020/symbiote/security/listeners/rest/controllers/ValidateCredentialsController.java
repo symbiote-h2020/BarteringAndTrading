@@ -15,6 +15,7 @@ import io.swagger.annotations.ApiParam;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Jakub Toczek (PSNC)
  * @see CredentialsValidationService
  */
+@Profile("service")
 @RestController
 @Api(value = "/docs/validateCredentials", description = "Exposes services used to validate coupons in given BTM")
 public class ValidateCredentialsController implements IValidateCredentials {
