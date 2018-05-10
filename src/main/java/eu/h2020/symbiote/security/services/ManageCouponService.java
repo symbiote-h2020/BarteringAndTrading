@@ -72,9 +72,14 @@ public class ManageCouponService {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add(SecurityConstants.COUPON_HEADER_NAME, localCoupon.getCoupon());
         HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-        ResponseEntity<String> exchangeResponse = restTemplate.postForEntity(
-                btmAddress + SecurityConstants.BTM_EXCHANGE_COUPONS,
-                entity, String.class);
+        ResponseEntity<String> exchangeResponse;
+        try {
+            exchangeResponse = restTemplate.postForEntity(
+                    btmAddress + SecurityConstants.BTM_EXCHANGE_COUPONS,
+                    entity, String.class);
+        } catch (Exception e) {
+            throw new BTMException("Federated BTM is unavailable.");
+        }
         if (!exchangeResponse.getStatusCode().equals(HttpStatus.OK)) {
             throw new BTMException("Federated BTM refused to exchange coupons.");
         }
@@ -146,14 +151,14 @@ public class ManageCouponService {
         return exchangedCoupon;
     }
 
-    private Map<String, AAM> getAvailableAAMs() throws ValidationException {
+    private Map<String, AAM> getAvailableAAMs() throws BTMException {
         AAMClient aamClient = new AAMClient(coreInterfaceAddress);
         Map<String, AAM> availableAAMs;
         try {
             availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
         } catch (AAMException e) {
             log.error(e);
-            throw new ValidationException("Core AAM is not available. Please, check your connection.");
+            throw new BTMException("Core AAM is not available. Please, check your connection.");
         }
         return availableAAMs;
     }
@@ -233,7 +238,7 @@ public class ManageCouponService {
             BTMException {
         Coupon receivedCoupon = new Coupon(couponString);
         //TODO validate in core
-        //TODO validate B&T deal
+        //TODO validate B&T deal / if exchange refused, HttpStatus.Forbiden
         // generate coupon for exchange
         Coupon coupon = couponIssuer.getDiscreteCoupon();
         // notify core about creation of the coupon

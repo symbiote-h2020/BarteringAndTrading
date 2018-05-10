@@ -34,13 +34,12 @@ import static eu.h2020.symbiote.security.services.helpers.CouponIssuer.buildCoup
 @RestController
 public class DummyPlatformBTM {
     private static final Log log = LogFactory.getLog(DummyPlatformBTM.class);
-    private static final String CERTIFICATE_LOCATION = "./src/test/resources/keystores/core.p12";
-    private static final String PLATFORM_CERTIFICATE_ALIAS = "dummy-platform";
     private static final String BTM_CERTIFICATE_ALIAS = "btm";
     private static final String PLATFORM_CERTIFICATE_LOCATION = "./src/test/resources/keystores/dummy_service_btm.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/platform/btm";
-    private static final String platform1Id = "dummy-platform";
+    private static final String platformId = "dummy-platform";
+    public ExchangeState exchangeState = ExchangeState.OK;
     public int port;
     private KeyStore ks;
     private Key key;
@@ -61,23 +60,28 @@ public class DummyPlatformBTM {
                 attributes,
                 Coupon.Type.DISCRETE,
                 100,
-                "platform",
+                platformId,
                 ks.getCertificate(BTM_CERTIFICATE_ALIAS).getPublicKey(),
                 (PrivateKey) key
         ));
         HttpHeaders headers = new HttpHeaders();
         headers.add(SecurityConstants.COUPON_HEADER_NAME, coupon.getCoupon());
-        return new ResponseEntity<>(headers, HttpStatus.OK);
+        switch (exchangeState) {
+            case OK:
+                return new ResponseEntity<>(headers, HttpStatus.OK);
+            case REFUSED:
+                return new ResponseEntity<>("", HttpStatus.FORBIDDEN);
+            default:
+                throw new ValidationException("No connection");
+        }
     }
 
 
-    @PostMapping(path = PATH + "/btm" + SecurityConstants.BTM_NOTIFICATION)
-    public ResponseEntity notification(@RequestHeader(SecurityConstants
-            .TOKEN_HEADER_NAME) String token) {
-        log.info("Validating token " + token);
-        return new ResponseEntity(HttpStatus.OK);
+    public enum ExchangeState {
+        OK,
+        NO_CONNECTION,
+        REFUSED
     }
-
 
 }
 
