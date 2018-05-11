@@ -62,6 +62,20 @@ public class NotificationController implements INotifyCouponManagement {
         }
     }
 
+    @Override
+    public ResponseEntity<String> isNotified(@RequestBody Notification notification) throws MalformedJWTException {
+        String notificationId = NotifiedCoupon.createIdFromNotification(notification);
+        if (!notificationsRepository.exists(notificationId)) {
+            log.error("Coupon creation with such id was not notified.");
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        if (!notificationsRepository.findOne(notificationId).getCouponString().equals(notification.getCouponString())) {
+            log.error("Coupon creation with such id was already notified. It differs with this acquired.");
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     private NotifiedCoupon notifyUsage(NotifiedCoupon notifiedCoupon, String user) throws MalformedJWTException {
         JWTClaims claims = JWTEngine.getClaimsFromJWT(notifiedCoupon.getCouponString());
         if (user.equals(claims.getIss())) {

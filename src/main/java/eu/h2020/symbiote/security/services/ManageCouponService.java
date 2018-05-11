@@ -28,6 +28,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.security.cert.CertificateException;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -101,6 +103,20 @@ public class ManageCouponService {
         return notificationResponse.getStatusCode().equals(HttpStatus.OK);
     }
 
+    private boolean checkInCore(Coupon localCoupon) {
+        Notification notification = new Notification(localCoupon.getCoupon(), certificationAuthorityHelper.getBTMPlatformInstanceIdentifier());
+        ResponseEntity<String> notificationResponse;
+        try {
+            notificationResponse = restTemplate.postForEntity(
+                    btmCoreAddress + SecurityConstants.BTM_IS_NOTIFIED,
+                    notification, String.class);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return false;
+        }
+        return notificationResponse.getStatusCode().equals(HttpStatus.OK);
+    }
+
     public Coupon getCoupon(String loginRequest) throws
             MalformedJWTException,
             InvalidArgumentsException,
@@ -113,7 +129,6 @@ public class ManageCouponService {
         if (claims.getIss() == null || claims.getSub() == null || claims.getIss().isEmpty() || claims.getSub().isEmpty()) {
             throw new InvalidArgumentsException();
         }
-        //TODO ISS check
         //search for saved coupons
         HashSet<IssuedCoupon> issuedCoupons = issuedCouponsRepository.findAllByIssuer(claims.getSub());
         if (issuedCoupons.isEmpty()) {
@@ -168,8 +183,13 @@ public class ManageCouponService {
             BTMException {
         Coupon coupon = new Coupon(couponString);
         // validate coupon
-        if (!validationHelper.validate(couponString).equals(CouponValidationStatus.VALID)) {
-            throw new InvalidArgumentsException("Coupon is not valid.");
+        try {
+            if (!validationHelper.validateJWT(couponString, JWTEngine.getClaims(couponString)).equals(CouponValidationStatus.VALID)) {
+                throw new InvalidArgumentsException("Coupon is not valid.");
+            }
+        } catch (IOException | AAMException | CertificateException e) {
+            log.error(e.getMessage());
+            return false;
         }
         IssuedCoupon issuedCoupon = issuedCouponsRepository.findOne(coupon.getId());
         if (new Coupon(issuedCoupon.getCouponString()).getType().equals(Coupon.Type.DISCRETE)) {
@@ -203,7 +223,10 @@ public class ManageCouponService {
             JWTCreationException,
             BTMException {
         Coupon receivedCoupon = new Coupon(couponString);
-        //TODO validate in core
+        //check, if received coupon was notified
+        if (!checkInCore(receivedCoupon)) {
+            throw new BTMException("Received coupon creation wasn't notified in the core!.");
+        }
         //TODO validate B&T deal / if exchange refused, HttpStatus.Forbiden
         // generate coupon for exchange
         Coupon coupon = couponIssuer.getDiscreteCoupon();

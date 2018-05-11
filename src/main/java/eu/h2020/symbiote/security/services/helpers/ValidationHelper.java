@@ -56,16 +56,7 @@ public class ValidationHelper {
 
         try {
             Claims claims = new Coupon(coupon).getClaims();
-            if (claims.getIssuer() == null) {
-                log.error("Issuer of this coupon is unknown.");
-                throw new MalformedJWTException();
-            }
-            String issuerCertificate;
-            issuerCertificate = (claims.getIssuer().equals(certificationAuthorityHelper.getBTMInstanceIdentifier()) ?
-                    certificationAuthorityHelper.getBTMCert() :
-                    aamClient.getComponentCertificate("btm", claims.getIssuer()));
-            //basic validation (signature and exp)
-            ValidationStatus validationStatus = JWTEngine.validateJWTString(coupon, CryptoHelper.convertPEMToX509(issuerCertificate).getPublicKey());
+            ValidationStatus validationStatus = validateJWT(coupon, claims);
             if (validationStatus != ValidationStatus.VALID) {
                 throw new MalformedJWTException();
             }
@@ -98,5 +89,18 @@ public class ValidationHelper {
         }
         return CouponValidationStatus.VALID;
 
+    }
+
+    public ValidationStatus validateJWT(String coupon, Claims claims) throws MalformedJWTException, IOException, AAMException, ValidationException, CertificateException {
+        if (claims.getIssuer() == null) {
+            log.error("Issuer of this coupon is unknown.");
+            throw new MalformedJWTException();
+        }
+        String issuerCertificate;
+        issuerCertificate = (claims.getIssuer().equals(certificationAuthorityHelper.getBTMInstanceIdentifier()) ?
+                certificationAuthorityHelper.getBTMCert() :
+                aamClient.getComponentCertificate("btm", claims.getIssuer()));
+        //basic validation (signature and exp)
+        return JWTEngine.validateJWTString(coupon, CryptoHelper.convertPEMToX509(issuerCertificate).getPublicKey());
     }
 }

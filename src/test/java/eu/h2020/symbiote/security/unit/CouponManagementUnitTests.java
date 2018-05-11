@@ -50,6 +50,7 @@ public class CouponManagementUnitTests extends
         ReflectionTestUtils.setField(manageCouponService, "btmCoreAddress", serverAddress + "/test/caam/btm");
         dummyPlatformBTM.exchangeState = DummyPlatformBTM.ExchangeState.OK;
         dummyCoreAAMAndBTM.notify = true;
+        dummyCoreAAMAndBTM.isNotified = true;
     }
 
     @After
@@ -327,6 +328,28 @@ public class CouponManagementUnitTests extends
             JWTCreationException,
             BTMException {
         ReflectionTestUtils.setField(manageCouponService, "btmCoreAddress", serverAddress + "/test/caam/btm/wrong");
+        //check if repo is empty
+        assertEquals(0, issuedCouponsRepository.count());
+        //get any coupon for exchange
+        Coupon coupon = new Coupon(buildCouponJWT(
+                new HashMap<>(),
+                Coupon.Type.DISCRETE,
+                100,
+                dummyPlatformId,
+                //for now, doesnt matter what the keys are
+                userKeyPair.getPublic(),
+                userKeyPair.getPrivate()
+        ));
+        //exchange coupon
+        manageCouponService.exchangeCoupon(coupon.getCoupon());
+    }
+
+    @Test(expected = BTMException.class)
+    public void exchangeCouponFailNoCoreNotification() throws
+            ValidationException,
+            JWTCreationException,
+            BTMException {
+        dummyCoreAAMAndBTM.isNotified = false;
         //check if repo is empty
         assertEquals(0, issuedCouponsRepository.count());
         //get any coupon for exchange
