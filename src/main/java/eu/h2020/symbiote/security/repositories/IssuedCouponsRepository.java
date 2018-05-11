@@ -12,7 +12,7 @@ import java.util.HashSet;
  *
  * @author Jakub Toczek (PSNC)
  */
-@Profile("service")
+@Profile("platform")
 public interface IssuedCouponsRepository extends MongoRepository<IssuedCoupon, String> {
 
     HashSet<IssuedCoupon> findAllByIssuer(String id);

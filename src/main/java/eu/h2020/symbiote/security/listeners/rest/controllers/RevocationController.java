@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Mikolaj Dobski (PSNC)
  * @see RevocationService
  */
-@Profile("service")
+@Profile("platform")
 @Api(value = "/docs/revokeCredentials", description = "Exposes services allowing SymbIoTe actors (users) to revoke their coupons")
 @RestController
 public class RevocationController implements IRevokeCredentials {

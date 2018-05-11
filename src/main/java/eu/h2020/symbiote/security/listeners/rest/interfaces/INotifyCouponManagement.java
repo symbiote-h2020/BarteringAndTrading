@@ -10,6 +10,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 @Profile("core")
 public interface INotifyCouponManagement {
 
-    @PostMapping(value = SecurityConstants.BTM_NOTIFICATION)
+    @PostMapping(value = SecurityConstants.BTM_NOTIFICATION, consumes = "application/json")
     ResponseEntity<String> notifyCouponManagement(@RequestBody Notification notification);
 }

@@ -38,8 +38,6 @@ import java.security.cert.X509Certificate;
 @ContextConfiguration
 public abstract class AbstractBTMTestSuite {
 
-    protected final String username = "testApplicationUsername";
-    protected final String clientId = "clientId";
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
     protected KeyPair userKeyPair;

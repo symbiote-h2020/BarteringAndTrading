@@ -7,14 +7,21 @@ import eu.h2020.symbiote.security.communication.payloads.Notification;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.INotifyCouponManagement;
 import eu.h2020.symbiote.security.repositories.NotificationsRepository;
 import eu.h2020.symbiote.security.repositories.entities.NotifiedCoupon;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 @Profile("core")
+@RestController
 public class NotificationController implements INotifyCouponManagement {
 
     private static Log log = LogFactory.getLog(NotificationController.class);
@@ -31,7 +38,12 @@ public class NotificationController implements INotifyCouponManagement {
      * @see NotifiedCoupon
      */
     @Override
-    public ResponseEntity<String> notifyCouponManagement(Notification couponManagementNotification) {
+    @ApiOperation(value = "Notifies about coupon usage/creation")
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Received coupon was malformed")})
+    public ResponseEntity<String> notifyCouponManagement(
+            @RequestBody
+            @ApiParam(value = "Notification about coupon usage/creation", required = true) Notification couponManagementNotification) {
         try {
             String notificationId = NotifiedCoupon.createIdFromNotification(couponManagementNotification);
             if (!notificationsRepository.exists(notificationId)) {

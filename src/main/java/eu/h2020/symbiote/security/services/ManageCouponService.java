@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.Notification;
 import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
 import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
@@ -38,7 +39,7 @@ import java.util.Map;
  * @author Jakub Toczek (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
-@Profile("service")
+@Profile("platform")
 @Service
 public class ManageCouponService {
 
@@ -48,7 +49,7 @@ public class ManageCouponService {
     private final String coreInterfaceAddress;
     private final ValidationHelper validationHelper;
     private final String btmCoreAddress;
-    private final String platformId;
+    private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final IssuedCouponsRepository issuedCouponsRepository;
     private RestTemplate restTemplate = new RestTemplate();
 
@@ -56,13 +57,13 @@ public class ManageCouponService {
     @Autowired
     public ManageCouponService(CouponIssuer couponIssuer,
                                @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
-                               @Value("${btm.platformId}") String platformId,
+                               CertificationAuthorityHelper certificationAuthorityHelper,
                                ValidationHelper validationHelper,
                                IssuedCouponsRepository issuedCouponsRepository) {
         this.couponIssuer = couponIssuer;
         this.coreInterfaceAddress = coreInterfaceAddress;
         this.btmCoreAddress = coreInterfaceAddress.endsWith("/aam") ? coreInterfaceAddress.substring(0, coreInterfaceAddress.length() - 4) + BTM_SUFFIX : coreInterfaceAddress + BTM_SUFFIX;
-        this.platformId = platformId;
+        this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.validationHelper = validationHelper;
         this.issuedCouponsRepository = issuedCouponsRepository;
     }
@@ -87,7 +88,7 @@ public class ManageCouponService {
     }
 
     private boolean notifyCore(Coupon localCoupon) {
-        Notification notification = new Notification(localCoupon.getCoupon(), platformId);
+        Notification notification = new Notification(localCoupon.getCoupon(), certificationAuthorityHelper.getBTMPlatformInstanceIdentifier());
         ResponseEntity<String> notificationResponse;
         try {
             notificationResponse = restTemplate.postForEntity(
@@ -160,38 +161,6 @@ public class ManageCouponService {
         return availableAAMs;
     }
 
-    /*
-        public Coupon TODOvalidation(String loginRequest) throws
-                MalformedJWTException,
-                InvalidArgumentsException,
-                JWTCreationException,
-                ValidationException,
-                IOException,
-                CertificateException {
-            // validate request
-            JWTClaims claims = JWTEngine.getClaimsFromJWT(loginRequest);
-
-            if (claims.getIss() == null || claims.getSub() == null || claims.getIss().isEmpty() || claims.getSub().isEmpty()) {
-                throw new InvalidArgumentsException();
-            }
-
-            String componentCertificate;
-            AAMClient aamClient = new AAMClient(coreInterfaceAddress);
-            try {
-                componentCertificate = aamClient.getComponentCertificate(claims.getSub(), claims.getIss());
-            } catch (AAMException e) {
-                log.error(e);
-                throw new ValidationException("Core AAM is not available. Please, check your connection.");
-            }
-            PublicKey componentPublicKey = CryptoHelper.convertPEMToX509(componentCertificate).getPublicKey();
-            if (ValidationStatus.VALID != JWTEngine.validateJWTString(loginRequest, componentPublicKey)) {
-                String message = String.format("Certificate public key of %s mismatch with this acquired from %s", claims.getSub(), claims.getIss());
-                log.error(message);
-                throw new ValidationException(message);
-            }
-            return couponIssuer.getDiscreteCoupon();
-        }
-    */
     public boolean consumeCoupon(String couponString) throws
             MalformedJWTException,
             InvalidArgumentsException,

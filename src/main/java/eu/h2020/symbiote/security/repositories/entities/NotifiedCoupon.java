@@ -10,11 +10,18 @@ import org.springframework.data.annotation.Id;
 public class NotifiedCoupon {
 
     @Id
-    private final String id;
-    private final String couponString;
-    private final String issuer;
+    private String id;
+    private String couponString;
+    private String issuer;
     private long issuerUsagesNotifications = 0;
     private long subjectUsagesNotifications = 0;
+
+    /**
+     * for mongo usage
+     */
+    public NotifiedCoupon() {
+
+    }
 
     public NotifiedCoupon(Notification notification) throws MalformedJWTException {
         this.id = createIdFromNotification(notification);

@@ -21,7 +21,7 @@ import java.util.Base64;
  * @author Mikołaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
  */
-@Profile("service")
+@Profile("platform")
 @Component
 public class RevocationHelper {
     private static final Logger log = LoggerFactory.getLogger(RevocationHelper.class);

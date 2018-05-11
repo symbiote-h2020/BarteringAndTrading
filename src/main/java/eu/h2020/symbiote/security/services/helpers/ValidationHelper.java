@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.security.cert.CertificateException;
 
 /**
  * Used to validate given credentials against data in the AAMs
@@ -31,7 +32,7 @@ import java.io.IOException;
  * @author Piotr Kicki (PSNC)
  * @author Jakub Toczek (PSNC)
  */
-@Profile("service")
+@Profile("platform")
 @Component
 public class ValidationHelper {
 
@@ -53,9 +54,7 @@ public class ValidationHelper {
 
     public CouponValidationStatus validate(String coupon) throws MalformedJWTException {
 
-        //TODO @JT it's only draft, change it
         try {
-
             Claims claims = new Coupon(coupon).getClaims();
             if (claims.getIssuer() == null) {
                 log.error("Issuer of this coupon is unknown.");
@@ -66,7 +65,7 @@ public class ValidationHelper {
                     certificationAuthorityHelper.getBTMCert() :
                     aamClient.getComponentCertificate("btm", claims.getIssuer()));
             //basic validation (signature and exp)
-            ValidationStatus validationStatus = JWTEngine.validateJWTString(coupon, CryptoHelper.convertPEMToPublicKey(issuerCertificate));
+            ValidationStatus validationStatus = JWTEngine.validateJWTString(coupon, CryptoHelper.convertPEMToX509(issuerCertificate).getPublicKey());
             if (validationStatus != ValidationStatus.VALID) {
                 throw new MalformedJWTException();
             }
@@ -93,7 +92,7 @@ public class ValidationHelper {
                     || issuedCoupon.getValidity() < 1) {
                 return CouponValidationStatus.UNKNOWN;
             }
-        } catch (ValidationException | AAMException | IOException e) {
+        } catch (ValidationException | AAMException | IOException | CertificateException e) {
             log.error(e);
             return CouponValidationStatus.UNKNOWN;
         }

@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Jakub Toczek (PSNC)
  * @see CredentialsValidationService
  */
-@Profile("service")
+@Profile("platform")
 @RestController
 @Api(value = "/docs/validateCredentials", description = "Exposes services used to validate coupons in given BTM")
 public class ValidateCredentialsController implements IValidateCredentials {

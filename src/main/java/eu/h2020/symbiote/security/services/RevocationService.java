@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
  * Spring service used to revoke tokens and certificates.
  * * @author Jakub Toczek (PSNC)
  */
-@Profile("service")
+@Profile("platform")
 @Service
 public class RevocationService {
     private static Log log = LogFactory.getLog(RevocationService.class);

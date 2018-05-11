@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
  *
  * @author Piotr Kicki (PSNC)
  */
-@Profile("service")
+@Profile("platform")
 @Service
 public class CredentialsValidationService {
     private final ValidationHelper validationHelper;

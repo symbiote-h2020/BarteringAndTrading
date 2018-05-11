@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Jakub Toczek (PSNC)
  * @see ManageCouponService
  */
-@Profile("service")
+@Profile("platform")
 @RestController
 @Api(value = "/docs/getCoupons", description = "Exposes services responsible for providing Coupons")
 public class ManageCouponController implements IManageCoupon {
@@ -92,8 +92,9 @@ public class ManageCouponController implements IManageCoupon {
             @RequestHeader(SecurityConstants.COUPON_HEADER_NAME)
             @ApiParam(value = "Coupon for consumption", required = true) String couponString) {
         try {
-            manageCouponService.consumeCoupon(couponString);
-            return new ResponseEntity<>(HttpStatus.OK);
+            if (manageCouponService.consumeCoupon(couponString))
+                return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         } catch (ValidationException | InvalidArgumentsException | BTMException e) {
             log.error(e);
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

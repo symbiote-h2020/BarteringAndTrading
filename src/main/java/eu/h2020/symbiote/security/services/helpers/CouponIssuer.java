@@ -31,7 +31,7 @@ import java.util.Map;
  * @author Mikołaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
  */
-@Profile("service")
+@Profile("platform")
 @Component
 public class CouponIssuer {
 

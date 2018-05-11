@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.swagger;
 
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManager;
+import eu.h2020.symbiote.security.BarteringTradingManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @WebAppConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest(classes = {AuthenticationAuthorizationManager.class, SwaggerConfig.class},
+@SpringBootTest(classes = {BarteringTradingManager.class, SwaggerConfig.class},
         properties = {"eureka.client.enabled=false",
                 "spring.sleuth.enabled=false"})
 @AutoConfigureMockMvc

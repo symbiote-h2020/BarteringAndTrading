@@ -15,10 +15,10 @@ import org.springframework.context.annotation.Bean;
  */
 @EnableDiscoveryClient
 @SpringBootApplication(scanBasePackages = "eu.h2020.symbiote.security")
-public class AuthenticationAuthorizationManager {
+public class BarteringTradingManager {
 
     public static void main(String[] args) {
-        SpringApplication.run(AuthenticationAuthorizationManager.class, args);
+        SpringApplication.run(BarteringTradingManager.class, args);
     }
 
     @Bean
