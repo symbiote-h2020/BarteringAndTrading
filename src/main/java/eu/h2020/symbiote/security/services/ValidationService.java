@@ -14,11 +14,11 @@ import org.springframework.stereotype.Service;
  */
 @Profile("platform")
 @Service
-public class CredentialsValidationService {
+public class ValidationService {
     private final ValidationHelper validationHelper;
 
     @Autowired
-    public CredentialsValidationService(ValidationHelper validationHelper) {
+    public ValidationService(ValidationHelper validationHelper) {
         this.validationHelper = validationHelper;
     }
 

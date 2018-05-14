@@ -1,29 +1,24 @@
 package eu.h2020.symbiote.security.commons.enums;
 
 /**
- * Used to define the {eu.h2020.symbiote.security.AuthenticationAuthorizationManager} deployment type:
- * CoreAAM,
- * Platform / Enabler
- * Smart Space
+ * Used to define the {eu.h2020.symbiote.security.BarteringTradingManager} deployment type:
+ * Core BTM,
+ * Platform BTM
  *
  * @author Mikołaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
  */
 public enum IssuingAuthorityType {
     /**
-     * Core AAM
+     * Core BTM
      */
     CORE,
     /**
-     * Platform AAM
+     * Platform BTM
      */
     PLATFORM,
     /**
-     * Smart Space AAM
-     */
-    SMART_SPACE,
-    /**
-     * uninitialised value of this enum, useful for TestAAM
+     * uninitialised value of this enum
      */
     NULL
 }

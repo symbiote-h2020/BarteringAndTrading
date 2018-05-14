@@ -20,6 +20,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Spring controller to handle HTTPS requests associated with notifications about coupon creation and usage.
+ *
+ * @author Jakub Toczek (PSNC)
+ * @author Mikolaj Dobski (PSNC)
+ * @see Notification
+ * @see NotifiedCoupon
+ */
 @Profile("core")
 @RestController
 public class NotificationController implements INotifyCouponManagement {
@@ -29,18 +37,12 @@ public class NotificationController implements INotifyCouponManagement {
     @Autowired
     NotificationsRepository notificationsRepository;
 
-    /**
-     * Spring controller to handle HTTPS requests related to the RESTful web services associated with notifications of the coupon creation.
-     *
-     * @author Jakub Toczek (PSNC)
-     * @author Mikolaj Dobski (PSNC)
-     * @see Notification
-     * @see NotifiedCoupon
-     */
+
     @Override
     @ApiOperation(value = "Notifies about coupon usage/creation")
     @ApiResponses({
-            @ApiResponse(code = 400, message = "Received coupon was malformed")})
+            @ApiResponse(code = 400, message = "Received coupon was malformed"),
+            @ApiResponse(code = 403, message = "Received coupon with that id was notified, but it differs with this in DB")})
     public ResponseEntity<String> notifyCouponManagement(
             @RequestBody
             @ApiParam(value = "Notification about coupon usage/creation", required = true) Notification couponManagementNotification) {
@@ -51,6 +53,10 @@ public class NotificationController implements INotifyCouponManagement {
                 log.debug("Successfully saved information about creation of the coupon: " + notificationId);
             } else {
                 NotifiedCoupon notifiedCoupon = notificationsRepository.findOne(notificationId);
+                if (!notifiedCoupon.getCouponString().equals(couponManagementNotification.getCouponString())) {
+                    log.error("Coupon creation with such id was already notified. It differs with this acquired.");
+                    return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+                }
                 notificationsRepository.save(notifyUsage(notifiedCoupon, couponManagementNotification.getSubject()));
                 log.debug("Successfully saved information about usage of the coupon: " + notificationId);
             }
@@ -63,6 +69,10 @@ public class NotificationController implements INotifyCouponManagement {
     }
 
     @Override
+    @ApiOperation(value = "Checking, if coupon was notified.")
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Received coupon was not notified"),
+            @ApiResponse(code = 403, message = "Received coupon with that id was notified, but it differs with this in DB")})
     public ResponseEntity<String> isNotified(@RequestBody Notification notification) throws MalformedJWTException {
         String notificationId = NotifiedCoupon.createIdFromNotification(notification);
         if (!notificationsRepository.exists(notificationId)) {

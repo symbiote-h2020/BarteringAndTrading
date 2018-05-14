@@ -14,7 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 /**
  * Used by components with MongoDB
  *
- * @author mateuszl
+ * @author Jakub Toczek
  * @author Mikołaj Dobski
  */
 @Configuration

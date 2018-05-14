@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 /**
- * Spring controller to handle HTTPS requests related to the RESTful web services associated with acquiring coupons.
+ * Spring controller to handle HTTPS requests related to the RESTful web services associated with acquiring, exchanging and consuming coupons.
  *
  * @author Mikolaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Profile("platform")
 @RestController
-@Api(value = "/docs/getCoupons", description = "Exposes services responsible for providing Coupons")
+@Api(value = "/docs/manageCoupons", description = "Exposes services responsible for providing, exchanging and consuming Coupons")
 public class ManageCouponController implements IManageCoupon {
 
     private final ManageCouponService manageCouponService;
@@ -41,16 +41,16 @@ public class ManageCouponController implements IManageCoupon {
         this.manageCouponService = manageCouponService;
     }
 
-    @ApiOperation(value = "Issues a Discrete Coupon")
+    @ApiOperation(value = "Issues a discrete Coupon")
     @ApiResponses({
             @ApiResponse(code = 400, message = "Received coupon was malformed"),
             @ApiResponse(code = 401, message = "Incorrect Credentials were provided"),
             @ApiResponse(code = 500, message = "Server failed to create Coupon")})
     public ResponseEntity<String> getDiscreteCoupon(
             @RequestHeader(SecurityConstants.COUPON_HEADER_NAME)
-            @ApiParam(value = "JWS built in accordance to Symbiote Security CryptoHelper", required = true) String loginRequest) {
+            @ApiParam(value = "JWS built in accordance to Symbiote Security CryptoHelper", required = true) String couponRequest) {
         try {
-            Coupon coupon = manageCouponService.getCoupon(loginRequest);
+            Coupon coupon = manageCouponService.getCoupon(couponRequest);
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.COUPON_HEADER_NAME, coupon.getCoupon());
             return new ResponseEntity<>(headers, HttpStatus.OK);
@@ -87,7 +87,7 @@ public class ManageCouponController implements IManageCoupon {
     @ApiOperation(value = "Consume a valid coupon")
     @ApiResponses({
             @ApiResponse(code = 400, message = "Received coupon was malformed"),
-            @ApiResponse(code = 500, message = "Server failed to create Coupon")})
+            @ApiResponse(code = 500, message = "Server failed to consume Coupon")})
     public ResponseEntity<String> consumeCoupon(
             @RequestHeader(SecurityConstants.COUPON_HEADER_NAME)
             @ApiParam(value = "Coupon for consumption", required = true) String couponString) {
