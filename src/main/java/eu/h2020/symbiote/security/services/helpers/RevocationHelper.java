@@ -5,8 +5,8 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTExceptio
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
-import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.security.repositories.StoredCouponsRepository;
+import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,14 +26,14 @@ import java.util.Base64;
 public class RevocationHelper {
     private static final Logger log = LoggerFactory.getLogger(RevocationHelper.class);
 
-    private final IssuedCouponsRepository issuedCouponsRepository;
+    private final StoredCouponsRepository storedCouponsRepository;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
 
 
     @Autowired
-    public RevocationHelper(IssuedCouponsRepository issuedCouponsRepository,
+    public RevocationHelper(StoredCouponsRepository storedCouponsRepository,
                             CertificationAuthorityHelper certificationAuthorityHelper) {
-        this.issuedCouponsRepository = issuedCouponsRepository;
+        this.storedCouponsRepository = storedCouponsRepository;
         this.certificationAuthorityHelper = certificationAuthorityHelper;
     }
 
@@ -53,13 +53,13 @@ public class RevocationHelper {
             log.error("Public key from coupon differs from owned by BTM.");
             return false;
         }
-        if (!issuedCouponsRepository.exists(couponClaims.getJti())) {
+        if (!storedCouponsRepository.exists(couponClaims.getJti())) {
             log.error("Coupon doesn't exist in issued coupons repository!");
             return false;
         }
-        IssuedCoupon issuedCoupon = issuedCouponsRepository.findOne(couponClaims.getJti());
-        issuedCoupon.setStatus(IssuedCoupon.Status.REVOKED);
-        issuedCouponsRepository.save(issuedCoupon);
+        StoredCoupon storedCoupon = storedCouponsRepository.findOne(couponClaims.getJti());
+        storedCoupon.setStatus(StoredCoupon.Status.REVOKED);
+        storedCouponsRepository.save(storedCoupon);
         log.debug("Coupon: %s was revoked succesfully", couponClaims.getJti());
         return true;
 

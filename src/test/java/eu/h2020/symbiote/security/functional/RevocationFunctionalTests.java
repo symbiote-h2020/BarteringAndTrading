@@ -8,7 +8,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
-import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,9 +37,9 @@ public class RevocationFunctionalTests extends
 
         Coupon coupon = couponIssuer.getDiscreteCoupon();
         assertNotNull(coupon.getCoupon());
-        assertTrue(issuedCouponsRepository.exists(coupon.getId()));
-        assertEquals(couponValidity, issuedCouponsRepository.findOne(coupon.getId()).getValidity());
-        assertEquals(IssuedCoupon.Status.VALID, issuedCouponsRepository.findOne(coupon.getId()).getStatus());
+        assertTrue(storedCouponsRepository.exists(coupon.getId()));
+        assertEquals(couponValidity, storedCouponsRepository.findOne(coupon.getId()).getValidity());
+        assertEquals(StoredCoupon.Status.VALID, storedCouponsRepository.findOne(coupon.getId()).getStatus());
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCouponString(coupon.toString());
@@ -47,6 +47,6 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
 
         assertTrue(Boolean.parseBoolean(btmClient.revokeCoupon(revocationRequest)));
-        assertEquals(IssuedCoupon.Status.REVOKED, issuedCouponsRepository.findOne(coupon.getId()).getStatus());
+        assertEquals(StoredCoupon.Status.REVOKED, storedCouponsRepository.findOne(coupon.getId()).getStatus());
     }
 }

@@ -5,8 +5,8 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
-import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
-import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.security.repositories.StoredCouponsRepository;
+import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -43,14 +43,14 @@ public class CouponIssuer {
     @Value("${btm.deployment.coupon.validity}")
     private long couponValidity;
 
-    private IssuedCouponsRepository issuedCouponsRepository;
+    private StoredCouponsRepository storedCouponsRepository;
 
     @Autowired
     public CouponIssuer(CertificationAuthorityHelper certificationAuthorityHelper,
-                        IssuedCouponsRepository issuedCouponsRepository) {
+                        StoredCouponsRepository storedCouponsRepository) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getBTMInstanceIdentifier();
-        this.issuedCouponsRepository = issuedCouponsRepository;
+        this.storedCouponsRepository = storedCouponsRepository;
     }
 
     public static String buildCouponJWT(Map<String, String> attributes,
@@ -102,7 +102,7 @@ public class CouponIssuer {
                     certificationAuthorityHelper.getBTMPublicKey(),
                     certificationAuthorityHelper.getBTMPrivateKey()
             ));
-            issuedCouponsRepository.save(new IssuedCoupon(coupon));
+            storedCouponsRepository.save(new StoredCoupon(coupon));
             return coupon;
         } catch (Exception e) {
             log.error(e);

@@ -4,7 +4,7 @@ import eu.h2020.symbiote.security.commons.Coupon;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 
-public class IssuedCoupon {
+public class StoredCoupon {
     @Id
     private String id;
     private String couponString;
@@ -13,7 +13,7 @@ public class IssuedCoupon {
     private long validity;
     private Status status;
 
-    public IssuedCoupon(Coupon coupon) {
+    public StoredCoupon(Coupon coupon) {
         this.id = coupon.getId();
         this.couponString = coupon.getCoupon();
         this.issuer = coupon.getClaims().getIssuer();
@@ -25,7 +25,7 @@ public class IssuedCoupon {
      * Constructor used by MongoDB
      */
 
-    public IssuedCoupon() {
+    public StoredCoupon() {
     }
 
     public void setValidity(long validity) {

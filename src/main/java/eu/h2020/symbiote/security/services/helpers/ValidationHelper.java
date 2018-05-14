@@ -9,8 +9,8 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
-import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.security.repositories.StoredCouponsRepository;
+import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import io.jsonwebtoken.Claims;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,15 +40,15 @@ public class ValidationHelper {
 
     // AAM configuration
     private final CertificationAuthorityHelper certificationAuthorityHelper;
-    private final IssuedCouponsRepository issuedCouponsRepository;
+    private final StoredCouponsRepository storedCouponsRepository;
     private final AAMClient aamClient;
 
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
-                            IssuedCouponsRepository issuedCouponsRepository,
+                            StoredCouponsRepository storedCouponsRepository,
                             @Value("${symbIoTe.localaam.url}") String localAAMAddress) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
-        this.issuedCouponsRepository = issuedCouponsRepository;
+        this.storedCouponsRepository = storedCouponsRepository;
         this.aamClient = new AAMClient(localAAMAddress);
     }
 
@@ -61,26 +61,26 @@ public class ValidationHelper {
                 throw new MalformedJWTException();
             }
             // check if coupon in db
-            if (!issuedCouponsRepository.exists(claims.getId())) {
+            if (!storedCouponsRepository.exists(claims.getId())) {
                 return CouponValidationStatus.COUPON_NOT_IN_DB;
             }
-            IssuedCoupon issuedCoupon = issuedCouponsRepository.findOne(claims.getId());
+            StoredCoupon storedCoupon = storedCouponsRepository.findOne(claims.getId());
             //check if coupons are the same
-            if (!issuedCoupon.getCouponString().equals(coupon)) {
+            if (!storedCoupon.getCouponString().equals(coupon)) {
                 return CouponValidationStatus.DB_MISMATCH;
             }
             // check if coupon is revoked
-            if (issuedCoupon.getStatus().equals(IssuedCoupon.Status.REVOKED)) {
+            if (storedCoupon.getStatus().equals(StoredCoupon.Status.REVOKED)) {
                 return CouponValidationStatus.REVOKED_COUPON;
             }
 
             // check if coupon is consumed
-            if (issuedCoupon.getStatus().equals(IssuedCoupon.Status.CONSUMED)) {
+            if (storedCoupon.getStatus().equals(StoredCoupon.Status.CONSUMED)) {
                 return CouponValidationStatus.CONSUMED_COUPON;
             }
             // check in valid repo
-            if (!issuedCoupon.getStatus().equals(IssuedCoupon.Status.VALID)
-                    || issuedCoupon.getValidity() < 1) {
+            if (!storedCoupon.getStatus().equals(StoredCoupon.Status.VALID)
+                    || storedCoupon.getValidity() < 1) {
                 return CouponValidationStatus.UNKNOWN;
             }
         } catch (ValidationException | AAMException | IOException | CertificateException e) {

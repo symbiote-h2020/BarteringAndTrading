@@ -7,7 +7,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
 import eu.h2020.symbiote.security.communication.payloads.RevocationResponse;
-import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import eu.h2020.symbiote.security.services.RevocationService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
@@ -51,13 +51,13 @@ public class RevocationUnitTests extends
         revocationRequest.setCouponString(discreteCoupon.getCoupon());
 
         // verify the user coupon is not yet revoked
-        assertEquals(IssuedCoupon.Status.VALID, issuedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(StoredCoupon.Status.VALID, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
         // revocation
         RevocationResponse response = revocationService.revoke(revocationRequest);
 
         // verify the user coupon is revoked
         assertTrue(response.isRevoked());
-        assertEquals(IssuedCoupon.Status.REVOKED, issuedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(StoredCoupon.Status.REVOKED, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
     }
 
     @Test
@@ -66,7 +66,7 @@ public class RevocationUnitTests extends
         // acquiring valid coupon
         Coupon discreteCoupon = couponIssuer.getDiscreteCoupon();
         // verify the user token is not yet revoked
-        assertEquals(IssuedCoupon.Status.VALID, issuedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(StoredCoupon.Status.VALID, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials("wrongUsername", BTMOwnerPassword));
@@ -77,7 +77,7 @@ public class RevocationUnitTests extends
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(IssuedCoupon.Status.VALID, issuedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(StoredCoupon.Status.VALID, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
 
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, "wrong password"));
         // revocation using wrong admin password
@@ -85,7 +85,7 @@ public class RevocationUnitTests extends
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(IssuedCoupon.Status.VALID, issuedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(StoredCoupon.Status.VALID, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
 
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -94,7 +94,7 @@ public class RevocationUnitTests extends
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(IssuedCoupon.Status.VALID, issuedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(StoredCoupon.Status.VALID, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
 
     }
 

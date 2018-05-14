@@ -28,7 +28,7 @@ public class ValidationFunctionalTests extends
             BTMException {
 
         Coupon coupon = couponIssuer.getDiscreteCoupon();
-        assertTrue(issuedCouponsRepository.exists(coupon.getId()));
+        assertTrue(storedCouponsRepository.exists(coupon.getId()));
         assertNotNull(coupon.getCoupon());
 
         CouponValidationStatus status = btmClient.validateCoupon(coupon.getCoupon());

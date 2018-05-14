@@ -2,15 +2,15 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
+import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.Notification;
-import eu.h2020.symbiote.security.repositories.IssuedCouponsRepository;
-import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.security.repositories.StoredCouponsRepository;
+import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
@@ -52,7 +52,7 @@ public class ManageCouponService {
     private final ValidationHelper validationHelper;
     private final String btmCoreAddress;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
-    private final IssuedCouponsRepository issuedCouponsRepository;
+    private final StoredCouponsRepository storedCouponsRepository;
     private RestTemplate restTemplate = new RestTemplate();
 
 
@@ -61,13 +61,13 @@ public class ManageCouponService {
                                @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
                                CertificationAuthorityHelper certificationAuthorityHelper,
                                ValidationHelper validationHelper,
-                               IssuedCouponsRepository issuedCouponsRepository) {
+                               StoredCouponsRepository storedCouponsRepository) {
         this.couponIssuer = couponIssuer;
         this.coreInterfaceAddress = coreInterfaceAddress;
         this.btmCoreAddress = coreInterfaceAddress.endsWith("/aam") ? coreInterfaceAddress.substring(0, coreInterfaceAddress.length() - 4) + BTM_SUFFIX : coreInterfaceAddress + BTM_SUFFIX;
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.validationHelper = validationHelper;
-        this.issuedCouponsRepository = issuedCouponsRepository;
+        this.storedCouponsRepository = storedCouponsRepository;
     }
 
     public Coupon sendCouponForExchange(String btmAddress, Coupon localCoupon) throws BTMException, ValidationException {
@@ -130,13 +130,13 @@ public class ManageCouponService {
             throw new InvalidArgumentsException();
         }
         //search for saved coupons
-        HashSet<IssuedCoupon> issuedCoupons = issuedCouponsRepository.findAllByIssuer(claims.getSub());
-        if (issuedCoupons.isEmpty()) {
+        HashSet<StoredCoupon> storedCoupons = storedCouponsRepository.findAllByIssuer(claims.getSub());
+        if (storedCoupons.isEmpty()) {
             return getFederatedCoupon(claims);
         } else {
-            for (IssuedCoupon issuedCoupon : issuedCoupons) {
-                if (issuedCoupon.getStatus().equals(IssuedCoupon.Status.VALID))
-                    return new Coupon(issuedCoupon.getCouponString());
+            for (StoredCoupon storedCoupon : storedCoupons) {
+                if (storedCoupon.getStatus().equals(StoredCoupon.Status.VALID))
+                    return new Coupon(storedCoupon.getCouponString());
             }
             return getFederatedCoupon(claims);
         }
@@ -160,7 +160,7 @@ public class ManageCouponService {
         }
         //exchange coupon
         Coupon exchangedCoupon = sendCouponForExchange(btmAddress, coupon);
-        issuedCouponsRepository.save(new IssuedCoupon(exchangedCoupon));
+        storedCouponsRepository.save(new StoredCoupon(exchangedCoupon));
         return exchangedCoupon;
     }
 
@@ -184,21 +184,21 @@ public class ManageCouponService {
         Coupon coupon = new Coupon(couponString);
         // validate coupon
         try {
-            if (!validationHelper.validateJWT(couponString, JWTEngine.getClaims(couponString)).equals(CouponValidationStatus.VALID)) {
+            if (!validationHelper.validateJWT(couponString, JWTEngine.getClaims(couponString)).equals(ValidationStatus.VALID)) {
                 throw new InvalidArgumentsException("Coupon is not valid.");
             }
         } catch (IOException | AAMException | CertificateException e) {
             log.error(e.getMessage());
             return false;
         }
-        IssuedCoupon issuedCoupon = issuedCouponsRepository.findOne(coupon.getId());
-        if (new Coupon(issuedCoupon.getCouponString()).getType().equals(Coupon.Type.DISCRETE)) {
-            long validity = issuedCoupon.getValidity();
+        StoredCoupon storedCoupon = storedCouponsRepository.findOne(coupon.getId());
+        if (new Coupon(storedCoupon.getCouponString()).getType().equals(Coupon.Type.DISCRETE)) {
+            long validity = storedCoupon.getValidity();
             if (validity <= 1) {
-                issuedCoupon.setStatus(IssuedCoupon.Status.CONSUMED);
+                storedCoupon.setStatus(StoredCoupon.Status.CONSUMED);
             }
-            issuedCoupon.setValidity(validity - 1);
-            issuedCouponsRepository.save(issuedCoupon);
+            storedCoupon.setValidity(validity - 1);
+            storedCouponsRepository.save(storedCoupon);
 
             if (!notifyCore(coupon)) {
                 throw new BTMException("Problem with notification to Core about coupon usage occurred.");
@@ -235,9 +235,9 @@ public class ManageCouponService {
             throw new BTMException("Problem with notification to Core about coupon creation occurred.");
         }
         // save exchanged coupon
-        issuedCouponsRepository.save(new IssuedCoupon(coupon));
+        storedCouponsRepository.save(new StoredCoupon(coupon));
         // save received coupon
-        issuedCouponsRepository.save(new IssuedCoupon(receivedCoupon));
+        storedCouponsRepository.save(new StoredCoupon(receivedCoupon));
         return coupon;
 
     }

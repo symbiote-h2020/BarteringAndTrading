@@ -6,7 +6,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import eu.h2020.symbiote.security.services.ManageCouponService;
 import eu.h2020.symbiote.security.utils.DummyPlatformBTM;
 import org.junit.After;
@@ -75,7 +75,7 @@ public class CouponManagementUnitTests extends
 
         assertEquals(Coupon.Type.DISCRETE, discreteCoupon.getType());
         assertEquals("100", discreteCoupon.getClaims().get("val").toString());
-        assertTrue(issuedCouponsRepository.exists(discreteCoupon.getId()));
+        assertTrue(storedCouponsRepository.exists(discreteCoupon.getId()));
     }
 
     @Test(expected = BTMException.class)
@@ -181,9 +181,9 @@ public class CouponManagementUnitTests extends
                 userKeyPair.getPublic(),
                 userKeyPair.getPrivate()
         ));
-        IssuedCoupon issuedCoupon = new IssuedCoupon(coupon);
-        issuedCoupon.setStatus(IssuedCoupon.Status.CONSUMED);
-        issuedCouponsRepository.save(issuedCoupon);
+        StoredCoupon storedCoupon = new StoredCoupon(coupon);
+        storedCoupon.setStatus(StoredCoupon.Status.CONSUMED);
+        storedCouponsRepository.save(storedCoupon);
 
         dummyPlatformBTM.exchangeState = DummyPlatformBTM.ExchangeState.REFUSED;
         HomeCredentials homeCredentials = new HomeCredentials(null,
@@ -278,8 +278,8 @@ public class CouponManagementUnitTests extends
                 userKeyPair.getPublic(),
                 userKeyPair.getPrivate()
         ));
-        issuedCouponsRepository.save(new IssuedCoupon(coupon));
-        assertEquals(1, issuedCouponsRepository.count());
+        storedCouponsRepository.save(new StoredCoupon(coupon));
+        assertEquals(1, storedCouponsRepository.count());
         HomeCredentials homeCredentials = new HomeCredentials(null,
                 SecurityConstants.CORE_AAM_INSTANCE_ID,
                 componentId,
@@ -290,7 +290,7 @@ public class CouponManagementUnitTests extends
                         "btm"));
         String couponRequest = CryptoHelper.buildCouponAcquisitionRequest(homeCredentials, dummyPlatformId);
         Coupon acquiredCoupon = manageCouponService.getCoupon(couponRequest);
-        assertEquals(1, issuedCouponsRepository.count());
+        assertEquals(1, storedCouponsRepository.count());
         assertEquals(coupon.getCoupon(), acquiredCoupon.getCoupon());
         assertEquals(coupon.getId(), acquiredCoupon.getId());
         assertEquals(coupon.getType(), acquiredCoupon.getType());
@@ -303,7 +303,7 @@ public class CouponManagementUnitTests extends
             JWTCreationException,
             BTMException {
         //check if repo is empty
-        assertEquals(0, issuedCouponsRepository.count());
+        assertEquals(0, storedCouponsRepository.count());
         //get any coupon for exchange
         Coupon coupon = new Coupon(buildCouponJWT(
                 new HashMap<>(),
@@ -317,9 +317,9 @@ public class CouponManagementUnitTests extends
         //exchange coupon
         Coupon exchangedCoupon = manageCouponService.exchangeCoupon(coupon.getCoupon());
         // booth coupons should be in repository
-        assertEquals(2, issuedCouponsRepository.count());
-        assertTrue(issuedCouponsRepository.exists(exchangedCoupon.getId()));
-        assertTrue(issuedCouponsRepository.exists(coupon.getId()));
+        assertEquals(2, storedCouponsRepository.count());
+        assertTrue(storedCouponsRepository.exists(exchangedCoupon.getId()));
+        assertTrue(storedCouponsRepository.exists(coupon.getId()));
     }
 
     @Test(expected = BTMException.class)
@@ -329,7 +329,7 @@ public class CouponManagementUnitTests extends
             BTMException {
         ReflectionTestUtils.setField(manageCouponService, "btmCoreAddress", serverAddress + "/test/caam/btm/wrong");
         //check if repo is empty
-        assertEquals(0, issuedCouponsRepository.count());
+        assertEquals(0, storedCouponsRepository.count());
         //get any coupon for exchange
         Coupon coupon = new Coupon(buildCouponJWT(
                 new HashMap<>(),
@@ -351,7 +351,7 @@ public class CouponManagementUnitTests extends
             BTMException {
         dummyCoreAAMAndBTM.isNotified = false;
         //check if repo is empty
-        assertEquals(0, issuedCouponsRepository.count());
+        assertEquals(0, storedCouponsRepository.count());
         //get any coupon for exchange
         Coupon coupon = new Coupon(buildCouponJWT(
                 new HashMap<>(),
