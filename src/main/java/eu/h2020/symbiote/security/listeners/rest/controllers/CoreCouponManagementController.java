@@ -51,4 +51,13 @@ public class CoreCouponManagementController implements ICoreCouponManagement {
     public ResponseEntity<String> consumeCoupon(@RequestBody Coupon coupon) {
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
+    //TODO
+    @Override
+    @ApiOperation(value = "Cleanup all consumed coupons before provided timestamp")
+    public ResponseEntity<String> cleanupConsumedCoupons(@RequestBody long timestamp) {
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
 }

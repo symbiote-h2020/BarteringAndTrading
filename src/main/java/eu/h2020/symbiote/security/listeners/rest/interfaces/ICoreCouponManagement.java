@@ -19,5 +19,8 @@ public interface ICoreCouponManagement {
     @PostMapping(value = SecurityConstants.BTM_CONSUME_COUPON, consumes = "application/json")
     ResponseEntity<String> consumeCoupon(@RequestBody Coupon coupon);
 
+    @PostMapping(value = SecurityConstants.BTM_CLEANUP_COUPONS, consumes = "application/json")
+    ResponseEntity<String> cleanupConsumedCoupons(@RequestBody long timestamp);
+
 
 }
