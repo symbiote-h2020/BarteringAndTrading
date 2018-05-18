@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.ICoreCouponManagement;
@@ -46,14 +47,26 @@ public class CoreCouponManagementController implements ICoreCouponManagement {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    //TODO
     @Override
     @ApiOperation(value = "Consume coupon in the Core BTM")
     @ApiResponses({
-            @ApiResponse(code = 400, message = "Received coupon was not notified"),
-            @ApiResponse(code = 403, message = "Received coupon with that id was notified, but it differs with this in DB")})
+            @ApiResponse(code = 400, message = "Received coupon didn't pass validation")})
     public ResponseEntity<String> consumeCoupon(@RequestBody String couponString) {
-        return new ResponseEntity<>(HttpStatus.OK);
+        try {
+            CouponValidationStatus couponValidationStatus = coreCouponManagementService.consumeCoupon(couponString);
+            switch (couponValidationStatus) {
+                case VALID:
+                    return new ResponseEntity<>(HttpStatus.OK);
+                //TODO add more codes.
+                default:
+                    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+            }
+        } catch (MalformedJWTException e) {
+            log.error("Received coupon was malformed");
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
     }
 
     @Override

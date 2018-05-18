@@ -11,5 +11,5 @@ public interface RegisteredCouponRepository extends MongoRepository<RegisteredCo
 
     Set<RegisteredCoupon> findByIssuer(String issuer);
 
-    Set<RegisteredCoupon> findAllByConsumptionTimestampBefore(long timestamp);
+    Set<RegisteredCoupon> findAllByLastConsumptionTimestampBefore(long timestamp);
 }

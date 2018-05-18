@@ -30,11 +30,35 @@ public class CoreCouponManagementService {
     }
 
     public int cleanupConsumedCoupons(long timestamp) {
-        Set<String> registeredConsumedCouponIdsSet = registeredCouponRepository.findAllByConsumptionTimestampBefore(timestamp).stream().filter(x -> x.getStatus().equals(StoredCoupon.Status.CONSUMED)).map(RegisteredCoupon::getId).collect(toSet());
+        Set<String> registeredConsumedCouponIdsSet = registeredCouponRepository.findAllByLastConsumptionTimestampBefore(timestamp).stream().filter(x -> x.getStatus().equals(StoredCoupon.Status.CONSUMED)).map(RegisteredCoupon::getId).collect(toSet());
         registeredConsumedCouponIdsSet.forEach(x -> registeredCouponRepository.delete(x));
         return registeredConsumedCouponIdsSet.size();
     }
 
+    public CouponValidationStatus consumeCoupon(String couponString) throws
+            MalformedJWTException {
+        long actualTimeStamp = new Date().getTime();
+        CouponValidity couponValidity = isCouponValid(couponString);
+        if (!couponValidity.getStatus().equals(CouponValidationStatus.VALID)) {
+            return couponValidity.getStatus();
+        }
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        RegisteredCoupon registeredCoupon = registeredCouponRepository.findOne(registeredCouponId);
+        // firstUsage update
+        if (registeredCoupon.getFirstUseTimestamp() == 0) {
+            registeredCoupon.setFirstUseTimestamp(actualTimeStamp);
+        }
+        registeredCoupon.setLastConsumptionTimestamp(actualTimeStamp);
+        registeredCoupon.setUsages(registeredCoupon.getUsages() + 1);
+        //update of DISCRETE coupons status
+        if (registeredCoupon.getType().equals(Coupon.Type.DISCRETE) &&
+                registeredCoupon.getUsages() >= registeredCoupon.getValidity()) {
+            registeredCoupon.setStatus(StoredCoupon.Status.CONSUMED);
+        }
+        registeredCouponRepository.save(registeredCoupon);
+        return couponValidity.getStatus();
+    }
     public CouponValidity isCouponValid(String couponString) throws MalformedJWTException {
         long actualTimeStamp = new Date().getTime();
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);

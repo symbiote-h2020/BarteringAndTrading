@@ -19,6 +19,7 @@ public class StoredCoupon {
         this.couponString = coupon.getCoupon();
         this.issuer = coupon.getClaims().getIssuer();
         this.type = coupon.getType();
+        this.status = Status.VALID;
     }
 
     /**

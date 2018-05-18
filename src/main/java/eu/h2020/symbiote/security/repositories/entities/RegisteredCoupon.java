@@ -18,7 +18,7 @@ public class RegisteredCoupon {
     private Coupon.Type type;
     private long usages;
     private long firstUseTimestamp;
-    private long consumptionTimestamp;
+    private long lastConsumptionTimestamp;
     private StoredCoupon.Status status;
 
     /**
@@ -39,7 +39,7 @@ public class RegisteredCoupon {
         this.type = new Coupon(couponString).getType();
         this.usages = 0;
         this.firstUseTimestamp = 0;
-        this.consumptionTimestamp = 0;
+        this.lastConsumptionTimestamp = 0;
         this.status = StoredCoupon.Status.VALID;
 
     }
@@ -72,12 +72,12 @@ public class RegisteredCoupon {
         this.firstUseTimestamp = firstUseTimestamp;
     }
 
-    public long getConsumptionTimestamp() {
-        return consumptionTimestamp;
+    public long getLastConsumptionTimestamp() {
+        return lastConsumptionTimestamp;
     }
 
-    public void setConsumptionTimestamp(long consumptionTimestamp) {
-        this.consumptionTimestamp = consumptionTimestamp;
+    public void setLastConsumptionTimestamp(long lastConsumptionTimestamp) {
+        this.lastConsumptionTimestamp = lastConsumptionTimestamp;
     }
 
     public StoredCoupon.Status getStatus() {
