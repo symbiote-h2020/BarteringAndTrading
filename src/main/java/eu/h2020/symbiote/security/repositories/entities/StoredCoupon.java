@@ -10,15 +10,15 @@ public class StoredCoupon {
     private String couponString;
     @Indexed
     private String issuer;
-    private long validity;
+    @Indexed
+    private Coupon.Type type;
     private Status status;
 
     public StoredCoupon(Coupon coupon) {
         this.id = coupon.getId();
         this.couponString = coupon.getCoupon();
         this.issuer = coupon.getClaims().getIssuer();
-        this.validity = Long.parseLong(coupon.getClaims().get("val").toString());
-        this.status = Status.VALID;
+        this.type = coupon.getType();
     }
 
     /**
@@ -28,24 +28,12 @@ public class StoredCoupon {
     public StoredCoupon() {
     }
 
-    public void setValidity(long validity) {
-        this.validity = validity;
-    }
-
     public Status getStatus() {
         return status;
     }
 
     public void setStatus(Status status) {
         this.status = status;
-    }
-
-    public Long getValidity() {
-        return validity;
-    }
-
-    public void setValidity(Long validity) {
-        this.validity = validity;
     }
 
     public String getCouponString() {
@@ -70,6 +58,14 @@ public class StoredCoupon {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public Coupon.Type getType() {
+        return type;
+    }
+
+    public void setType(Coupon.Type type) {
+        this.type = type;
     }
 
     public enum Status {

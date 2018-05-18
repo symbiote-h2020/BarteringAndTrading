@@ -53,7 +53,7 @@ public class DummyPlatformBTM {
         this.key = ks.getKey(BTM_CERTIFICATE_ALIAS, CERTIFICATE_PASSWORD.toCharArray());
     }
 
-    @PostMapping(path = PATH + SecurityConstants.BTM_EXCHANGE_COUPONS)
+    @PostMapping(path = PATH + SecurityConstants.BTM_AUTHORIZE_BARTERAL_ACCESS)
     public ResponseEntity<String> exchangeCoupon(@RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString) throws KeyStoreException, ValidationException {
         Map<String, String> attributes = new HashMap<>();
         Coupon coupon = new Coupon(buildCouponJWT(

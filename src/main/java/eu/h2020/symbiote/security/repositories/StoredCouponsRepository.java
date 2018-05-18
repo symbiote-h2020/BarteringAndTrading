@@ -16,4 +16,6 @@ import java.util.HashSet;
 public interface StoredCouponsRepository extends MongoRepository<StoredCoupon, String> {
 
     HashSet<StoredCoupon> findAllByIssuer(String id);
+
+    HashSet<StoredCoupon> findAllByIssuerAndType(String issuer, Coupon.Type type);
 }

@@ -31,6 +31,10 @@ public class ComponentSecurityHandlerProvider {
         );
     }
 
+    public IComponentSecurityHandler getComponentSecurityHandler() {
+        return componentSecurityHandler;
+    }
+
     public HomeCredentials getHomeCredentials() throws SecurityHandlerException {
         return componentSecurityHandler.getLocalAAMBoundCredentials().homeCredentials;
     }

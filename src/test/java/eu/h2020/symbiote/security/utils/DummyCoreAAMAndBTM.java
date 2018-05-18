@@ -5,7 +5,6 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
-import eu.h2020.symbiote.security.communication.payloads.Notification;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -14,8 +13,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.FileInputStream;
@@ -93,23 +90,6 @@ public class DummyCoreAAMAndBTM {
     }
 
 
-    @PostMapping(path = PATH + "/btm" + SecurityConstants.BTM_NOTIFICATION)
-    public ResponseEntity notification(@RequestBody Notification notification) {
-        if (notify) {
-            log.info("Coupon notified: " + notification.getCouponString());
-            return new ResponseEntity(HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-    }
-
-    @PostMapping(path = PATH + "/btm" + SecurityConstants.BTM_IS_NOTIFIED)
-    public ResponseEntity isNotified(@RequestBody Notification notification) {
-        if (isNotified) {
-            log.info("Coupon was confirmed to be notified: " + notification.getCouponString());
-            return new ResponseEntity(HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-    }
 
 }
 

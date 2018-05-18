@@ -38,7 +38,6 @@ public class RevocationFunctionalTests extends
         Coupon coupon = couponIssuer.getDiscreteCoupon();
         assertNotNull(coupon.getCoupon());
         assertTrue(storedCouponsRepository.exists(coupon.getId()));
-        assertEquals(couponValidity, storedCouponsRepository.findOne(coupon.getId()).getValidity());
         assertEquals(StoredCoupon.Status.VALID, storedCouponsRepository.findOne(coupon.getId()).getStatus());
 
         RevocationRequest revocationRequest = new RevocationRequest();

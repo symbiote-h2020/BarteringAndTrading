@@ -52,6 +52,7 @@ public class ValidationHelper {
         this.aamClient = new AAMClient(localAAMAddress);
     }
 
+    //TODO
     public CouponValidationStatus validate(String coupon) throws MalformedJWTException {
 
         try {
@@ -77,11 +78,6 @@ public class ValidationHelper {
             // check if coupon is consumed
             if (storedCoupon.getStatus().equals(StoredCoupon.Status.CONSUMED)) {
                 return CouponValidationStatus.CONSUMED_COUPON;
-            }
-            // check in valid repo
-            if (!storedCoupon.getStatus().equals(StoredCoupon.Status.VALID)
-                    || storedCoupon.getValidity() < 1) {
-                return CouponValidationStatus.UNKNOWN;
             }
         } catch (ValidationException | AAMException | IOException | CertificateException e) {
             log.error(e);
