@@ -1,8 +1,10 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.commons.Coupon;
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.RegisteredCouponRepository;
 import eu.h2020.symbiote.security.repositories.entities.RegisteredCoupon;
@@ -17,16 +19,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.util.Date;
 import java.util.HashMap;
 
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -45,6 +48,156 @@ public class CoreCouponManagementUnitTests {
             NoSuchAlgorithmException,
             NoSuchProviderException {
         this.btmKeyPair = CryptoHelper.createKeyPair();
+    }
+
+    @Test
+    public void validateDiscreteCouponSuccess() throws
+            MalformedJWTException,
+            ValidationException {
+        //generate coupon
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 10, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        //save coupon in db
+        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
+        registeredCouponRepository.save(registeredCoupon);
+        //ask for validation
+        CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
+        assertNotNull(couponValidity);
+        assertEquals(CouponValidationStatus.VALID, couponValidity.getStatus());
+        assertEquals(10, couponValidity.getRemainingUsages());
+        assertEquals(0, couponValidity.getRemainingTime());
+        //usage added
+        registeredCoupon.setUsages(1);
+        registeredCouponRepository.save(registeredCoupon);
+        //ask for validation
+        couponValidity = coreCouponManagementService.isCouponValid(couponString);
+        assertNotNull(couponValidity);
+        assertEquals(CouponValidationStatus.VALID, couponValidity.getStatus());
+        assertEquals(9, couponValidity.getRemainingUsages());
+        assertEquals(0, couponValidity.getRemainingTime());
+    }
+
+    @Test
+    public void validatePeriodicCouponSuccess() throws
+            MalformedJWTException,
+            ValidationException,
+            InterruptedException {
+        //generate coupon
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 10000, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        //save coupon in db
+        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
+        registeredCouponRepository.save(registeredCoupon);
+        //ask for validation
+        CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
+        assertNotNull(couponValidity);
+        assertEquals(CouponValidationStatus.VALID, couponValidity.getStatus());
+        assertEquals(0, couponValidity.getRemainingUsages());
+        assertEquals(10000, couponValidity.getRemainingTime());
+        //usage added
+        registeredCoupon.setFirstUseTimestamp(new Date().getTime());
+        registeredCouponRepository.save(registeredCoupon);
+        //ask for validation
+        Thread.sleep(1);
+        couponValidity = coreCouponManagementService.isCouponValid(couponString);
+        assertNotNull(couponValidity);
+        assertEquals(CouponValidationStatus.VALID, couponValidity.getStatus());
+        assertEquals(0, couponValidity.getRemainingUsages());
+        assertTrue(couponValidity.getRemainingTime() < 10000);
+    }
+
+    @Test
+    public void validatePeriodicCouponFailValidityEnded() throws
+            MalformedJWTException,
+            ValidationException,
+            InterruptedException {
+        //generate coupon
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        //save coupon in db
+        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
+        registeredCouponRepository.save(registeredCoupon);
+        //usage added
+        registeredCoupon.setFirstUseTimestamp(new Date().getTime());
+        registeredCouponRepository.save(registeredCoupon);
+        //ask for validation
+        Thread.sleep(1);
+        CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
+        assertNotNull(couponValidity);
+        assertEquals(CouponValidationStatus.CONSUMED_COUPON, couponValidity.getStatus());
+        assertEquals(0, couponValidity.getRemainingUsages());
+        assertEquals(0, couponValidity.getRemainingTime());
+    }
+
+    @Test
+    public void validateDiscreteCouponFailConsumedCoupon() throws
+            MalformedJWTException,
+            ValidationException {
+        //generate coupon
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        //save coupon in db
+        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
+        registeredCoupon.setStatus(StoredCoupon.Status.CONSUMED);
+        registeredCouponRepository.save(registeredCoupon);
+        //ask for validation
+        CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
+        assertNotNull(couponValidity);
+        assertEquals(CouponValidationStatus.CONSUMED_COUPON, couponValidity.getStatus());
+        assertEquals(0, couponValidity.getRemainingUsages());
+        assertEquals(0, couponValidity.getRemainingTime());
+    }
+
+    @Test
+    public void validateCouponFailNotRegistered() throws
+            MalformedJWTException {
+        //generate coupon
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        //ask for validation
+        CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
+        assertNotNull(couponValidity);
+        assertEquals(CouponValidationStatus.COUPON_NOT_REGISTERED, couponValidity.getStatus());
+        assertEquals(0, couponValidity.getRemainingUsages());
+        assertEquals(0, couponValidity.getRemainingTime());
+    }
+
+    @Test
+    public void validateCouponFailCouponRevoked() throws
+            MalformedJWTException,
+            ValidationException {
+        //generate coupon
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        //save coupon in db as revoked
+        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
+        registeredCoupon.setStatus(StoredCoupon.Status.REVOKED);
+        registeredCouponRepository.save(registeredCoupon);
+        //ask for validation
+        CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
+        assertNotNull(couponValidity);
+        assertEquals(CouponValidationStatus.REVOKED_COUPON, couponValidity.getStatus());
+        assertEquals(0, couponValidity.getRemainingUsages());
+        assertEquals(0, couponValidity.getRemainingTime());
+    }
+
+    @Test(expected = MalformedJWTException.class)
+    public void validateCouponFailMalformedCoupon() throws
+            MalformedJWTException {
+        String couponString = "MalformedCoupon";
+        coreCouponManagementService.isCouponValid(couponString);
+    }
+
+    @Test
+    public void validateCouponFailCouponMismatch() throws
+            MalformedJWTException,
+            ValidationException {
+        //generate coupon
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        //put it in repo with changed couponString
+        RegisteredCoupon registeredCoupon1 = new RegisteredCoupon(couponString);
+        ReflectionTestUtils.setField(registeredCoupon1, "couponString", "WrongCouponString");
+        registeredCouponRepository.save(registeredCoupon1);
+        //ask for validation
+        CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
+        assertNotNull(couponValidity);
+        assertEquals(CouponValidationStatus.DB_MISMATCH, couponValidity.getStatus());
+        assertEquals(0, couponValidity.getRemainingUsages());
+        assertEquals(0, couponValidity.getRemainingTime());
     }
 
     @Test

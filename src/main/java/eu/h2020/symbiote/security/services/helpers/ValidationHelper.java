@@ -63,7 +63,7 @@ public class ValidationHelper {
             }
             // check if coupon in db
             if (!storedCouponsRepository.exists(claims.getId())) {
-                return CouponValidationStatus.COUPON_NOT_IN_DB;
+                return CouponValidationStatus.COUPON_NOT_REGISTERED;
             }
             StoredCoupon storedCoupon = storedCouponsRepository.findOne(claims.getId());
             //check if coupons are the same

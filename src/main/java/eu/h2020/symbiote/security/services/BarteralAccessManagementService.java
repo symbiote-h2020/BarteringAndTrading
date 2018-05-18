@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Coupon;
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
@@ -60,7 +61,7 @@ public class BarteralAccessManagementService {
         BTMClient btmClient = new BTMClient(btmCoreAddress);
         for (StoredCoupon storedCoupon : storedCouponHashSet) {
             CouponValidity couponValidity = btmClient.isCouponValid(storedCoupon.getCouponString());
-            if (couponValidity.getStatus().equals(CouponValidity.Status.INVALID)) {
+            if (!couponValidity.getStatus().equals(CouponValidationStatus.VALID)) {
                 storedCouponsRepository.delete(storedCoupon.getId());
                 continue;
             }

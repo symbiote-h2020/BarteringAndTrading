@@ -1,10 +1,14 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.ICoreCouponManagement;
 import eu.h2020.symbiote.security.services.CoreCouponManagementService;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -24,6 +28,7 @@ public class CoreCouponManagementController implements ICoreCouponManagement {
 
 
     private CoreCouponManagementService coreCouponManagementService;
+    private static Log log = LogFactory.getLog(CoreCouponManagementController.class);
 
     @Autowired
     public CoreCouponManagementController(CoreCouponManagementService coreCouponManagementService) {
@@ -43,22 +48,28 @@ public class CoreCouponManagementController implements ICoreCouponManagement {
 
     //TODO
     @Override
-    @ApiOperation(value = "Coupon validation in Core BTM")
-    @ApiResponses({
-            @ApiResponse(code = 400, message = "Received coupon was not notified"),
-            @ApiResponse(code = 403, message = "Received coupon with that id was notified, but it differs with this in DB")})
-    public ResponseEntity<String> isCouponValid(@RequestBody String couponString) {
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    //TODO
-    @Override
     @ApiOperation(value = "Consume coupon in the Core BTM")
     @ApiResponses({
             @ApiResponse(code = 400, message = "Received coupon was not notified"),
             @ApiResponse(code = 403, message = "Received coupon with that id was notified, but it differs with this in DB")})
     public ResponseEntity<String> consumeCoupon(@RequestBody String couponString) {
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @Override
+    @ApiOperation(value = "Coupon validation in Core BTM")
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Received coupon was malformed")})
+    public ResponseEntity<CouponValidity> isCouponValid(@RequestBody String couponString) {
+        try {
+            CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
+            return new ResponseEntity<>(couponValidity, HttpStatus.OK);
+
+        } catch (MalformedJWTException e) {
+            log.error("Received coupon was malformed");
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
     }
 
     @Override
