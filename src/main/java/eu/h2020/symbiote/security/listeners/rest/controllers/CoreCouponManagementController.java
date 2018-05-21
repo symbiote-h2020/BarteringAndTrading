@@ -1,7 +1,10 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.ICoreCouponManagement;
 import eu.h2020.symbiote.security.services.CoreCouponManagementService;
@@ -16,6 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
+import java.security.cert.CertificateException;
 
 /**
  * Spring controller to handle HTTPS requests associated with coupon management in the CoreBTM.
@@ -36,15 +42,27 @@ public class CoreCouponManagementController implements ICoreCouponManagement {
         this.coreCouponManagementService = coreCouponManagementService;
     }
 
-    //TODO
     @Override
     @ApiOperation(value = "Register coupon in the Core BTM.")
     @ApiResponses({
             @ApiResponse(code = 400, message = "Received coupon was malformed"),
-            @ApiResponse(code = 403, message = "Received coupon with that id was notified, but it differs with this in DB")})
+            @ApiResponse(code = 401, message = "Received coupon was not valid"),
+            @ApiResponse(code = 500, message = "Internal server error occured (DB error, connection error)")})
     public ResponseEntity<String> registerCoupon(
             @RequestBody String couponString) {
-        return new ResponseEntity<>(HttpStatus.OK);
+
+        try {
+            if (coreCouponManagementService.registerCoupon(couponString)) {
+                return new ResponseEntity<>(HttpStatus.OK);
+            }
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (AAMException | MalformedJWTException | ValidationException | BTMException e) {
+            log.error(e.getMessage());
+            return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
+        } catch (IOException | CertificateException e) {
+            log.error(e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @Override

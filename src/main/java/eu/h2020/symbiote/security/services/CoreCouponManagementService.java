@@ -2,17 +2,27 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
+import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.RegisteredCouponRepository;
 import eu.h2020.symbiote.security.repositories.entities.RegisteredCoupon;
 import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.security.cert.CertificateException;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Set;
 
@@ -23,14 +33,21 @@ import static java.util.stream.Collectors.toSet;
 public class CoreCouponManagementService {
 
     private RegisteredCouponRepository registeredCouponRepository;
+    private String coreInterfaceAddress;
 
     @Autowired
-    public CoreCouponManagementService(RegisteredCouponRepository registeredCouponRepository) {
+    public CoreCouponManagementService(RegisteredCouponRepository registeredCouponRepository,
+                                       @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
         this.registeredCouponRepository = registeredCouponRepository;
+        this.coreInterfaceAddress = coreInterfaceAddress;
     }
 
     public int cleanupConsumedCoupons(long timestamp) {
-        Set<String> registeredConsumedCouponIdsSet = registeredCouponRepository.findAllByLastConsumptionTimestampBefore(timestamp).stream().filter(x -> x.getStatus().equals(StoredCoupon.Status.CONSUMED)).map(RegisteredCoupon::getId).collect(toSet());
+        Set<String> registeredConsumedCouponIdsSet =
+                registeredCouponRepository.findAllByLastConsumptionTimestampBefore(timestamp)
+                        .stream()
+                        .filter(x -> x.getStatus().equals(StoredCoupon.Status.CONSUMED))
+                        .map(RegisteredCoupon::getId).collect(toSet());
         registeredConsumedCouponIdsSet.forEach(x -> registeredCouponRepository.delete(x));
         return registeredConsumedCouponIdsSet.size();
     }
@@ -59,6 +76,35 @@ public class CoreCouponManagementService {
         registeredCouponRepository.save(registeredCoupon);
         return couponValidity.getStatus();
     }
+
+    public boolean registerCoupon(String couponString) throws MalformedJWTException, AAMException, IOException, CertificateException, ValidationException, BTMException {
+        //basic coupon validation
+        ValidationStatus validationStatus = JWTEngine.validateJWTString(couponString);
+        if (!validationStatus.equals(ValidationStatus.VALID)) {
+            throw new ValidationException("Signature verification failed.");
+        }
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        //checking if coupon has proper fields
+        if (claims.getVal() == null
+                || claims.getVal().isEmpty()
+                || Long.parseLong(claims.getVal()) <= 0) {
+            throw new ValidationException("Coupon should contain 'val' claim greater than zero");
+        }
+        //checking issuer public key in core
+        AAMClient aamClient = new AAMClient(coreInterfaceAddress);
+        String btmCertificate = aamClient.getComponentCertificate("btm", claims.getIss());
+        if (!claims.getIpk().equals(Base64.getEncoder().encodeToString(CryptoHelper.convertPEMToX509(btmCertificate).getPublicKey().getEncoded()))) {
+            throw new ValidationException("IPK from coupon doesn't match one fetched from core");
+        }
+        // check if id is not used
+        if (registeredCouponRepository.exists(RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss()))) {
+            throw new BTMException("Coupon with such id already exists.");
+        }
+        //save the coupon
+        registeredCouponRepository.save(new RegisteredCoupon(couponString));
+        return true;
+    }
+
     public CouponValidity isCouponValid(String couponString) throws MalformedJWTException {
         long actualTimeStamp = new Date().getTime();
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);

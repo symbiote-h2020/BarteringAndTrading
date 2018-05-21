@@ -1,53 +1,184 @@
 package eu.h2020.symbiote.security.unit;
 
+import eu.h2020.symbiote.security.AbstractCoreBTMTestSuite;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.RegisteredCouponRepository;
 import eu.h2020.symbiote.security.repositories.entities.RegisteredCoupon;
 import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
-import eu.h2020.symbiote.security.services.CoreCouponManagementService;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.io.IOException;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.HashMap;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextConfiguration
 @TestPropertySource("/core.properties")
-public class CoreCouponManagementUnitTests {
-    @Autowired
-    RegisteredCouponRepository registeredCouponRepository;
-    @Autowired
-    CoreCouponManagementService coreCouponManagementService;
+public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
+
+    private final String KEY_STORE_NAME = "keystores/dummy_service_btm.p12";
+    private final String KEY_STORE_PATH = "./src/test/resources/keystores/dummy_service_btm.p12";
+    private final String CERTIFICATE_ALIAS = "btm";
+    private final String KEY_STORE_PASSWORD = "1234567";
+
     private KeyPair btmKeyPair;
 
     @Before
     public void setUp() throws
+            Exception {
+        super.setUp();
+        ReflectionTestUtils.setField(coreCouponManagementService, "coreInterfaceAddress", serverAddress + "/test/caam");
+        PrivateKey privateKey = getPrivateKeyTestFromKeystore(KEY_STORE_NAME, KEY_STORE_PASSWORD, CERTIFICATE_ALIAS);
+        X509Certificate certificate = getCertificateFromTestKeystore(KEY_STORE_PATH, KEY_STORE_PASSWORD, CERTIFICATE_ALIAS);
+        this.btmKeyPair = new KeyPair(certificate.getPublicKey(), privateKey);
+    }
+
+    @After
+    public void after() {
+        ReflectionTestUtils.setField(coreCouponManagementService, "coreInterfaceAddress", serverAddress);
+    }
+
+    @Test
+    public void registerCouponSuccess() throws
+            MalformedJWTException,
+            ValidationException,
+            CertificateException,
+            AAMException,
+            BTMException,
+            IOException {
+        //generate coupon using btm cert
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 2, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        //check if coupon not in db
+        assertFalse(registeredCouponRepository.exists(registeredCouponId));
+        //register coupon
+        assertTrue(coreCouponManagementService.registerCoupon(couponString));
+        //check the DB
+        assertTrue(registeredCouponRepository.exists(registeredCouponId));
+        RegisteredCoupon registeredCoupon = registeredCouponRepository.findOne(registeredCouponId);
+        assertEquals(couponString, registeredCoupon.getCouponString());
+        assertEquals(0, registeredCoupon.getFirstUseTimestamp());
+        assertEquals(0, registeredCoupon.getLastConsumptionTimestamp());
+        assertEquals(0, registeredCoupon.getUsages());
+        assertEquals(Coupon.Type.DISCRETE, registeredCoupon.getType());
+        assertEquals(StoredCoupon.Status.VALID, registeredCoupon.getStatus());
+    }
+
+    @Test(expected = AAMException.class)
+    public void registerCouponFailCoreAAMNotAvailable() throws
+            MalformedJWTException,
+            ValidationException,
+            CertificateException,
+            AAMException,
+            BTMException,
+            IOException {
+        ReflectionTestUtils.setField(coreCouponManagementService, "coreInterfaceAddress", "wrongAddress");
+        //generate coupon using btm cert
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 2, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        //check if coupon not in db
+        assertFalse(registeredCouponRepository.exists(registeredCouponId));
+        //register coupon
+        coreCouponManagementService.registerCoupon(couponString);
+    }
+
+    @Test(expected = ValidationException.class)
+    public void registerCouponFailMalformedCoupon() throws
+            CertificateException,
+            AAMException,
+            BTMException,
+            IOException,
+            ValidationException,
+            MalformedJWTException {
+        //generate coupon using btm cert
+        String couponString = "malformedCoupon";
+        //register coupon
+        coreCouponManagementService.registerCoupon(couponString);
+    }
+
+    @Test(expected = ValidationException.class)
+    public void registerCouponFailMismatchOfComponentKeys() throws
+            CertificateException,
+            AAMException,
+            BTMException,
+            IOException,
+            ValidationException,
+            MalformedJWTException,
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException {
-        this.btmKeyPair = CryptoHelper.createKeyPair();
+        KeyPair keyPair = CryptoHelper.createKeyPair();
+        //generate coupon using random keys
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 2, "test", keyPair.getPublic(), keyPair.getPrivate());
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        //check if coupon not in db
+        assertFalse(registeredCouponRepository.exists(registeredCouponId));
+        //register coupon
+        coreCouponManagementService.registerCoupon(couponString);
+    }
+
+    @Test(expected = ValidationException.class)
+    public void registerCouponFailWrongValValue() throws
+            CertificateException,
+            AAMException,
+            BTMException,
+            IOException,
+            ValidationException,
+            MalformedJWTException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException {
+        KeyPair keyPair = CryptoHelper.createKeyPair();
+        //generate coupon using random keys
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, -5, "test", keyPair.getPublic(), keyPair.getPrivate());
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        //check if coupon not in db
+        assertFalse(registeredCouponRepository.exists(registeredCouponId));
+        //register coupon
+        coreCouponManagementService.registerCoupon(couponString);
+    }
+
+    @Test(expected = BTMException.class)
+    public void registerCouponFailAlreadyRegistered() throws
+            CertificateException,
+            AAMException,
+            BTMException,
+            IOException,
+            ValidationException,
+            MalformedJWTException {
+        //generate coupon using random keys
+        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 2, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        //check if coupon not in db
+        assertFalse(registeredCouponRepository.exists(registeredCouponId));
+        //register coupon
+        assertTrue(coreCouponManagementService.registerCoupon(couponString));
+        //check if coupon in db
+        assertTrue(registeredCouponRepository.exists(registeredCouponId));
+        //register coupon
+        coreCouponManagementService.registerCoupon(couponString);
     }
 
     @Test

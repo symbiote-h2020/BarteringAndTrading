@@ -9,7 +9,6 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,8 +39,6 @@ public class DummyCoreAAMAndBTM {
     private static final String PATH = "/test/caam";
     private static final String platform1Id = "dummy-platform";
     public int port;
-    public boolean notify = true;
-    public boolean isNotified = true;
     private Certificate coreCert;
     private AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
 
@@ -63,15 +60,6 @@ public class DummyCoreAAMAndBTM {
         coreCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
     }
 
-    private static X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException, CertificateException, NoSuchAlgorithmException {
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), CERTIFICATE_PASSWORD.toCharArray());
-        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
-    }
-
     @GetMapping(path = PATH + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
         aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("https://localhost:" + port + PATH,
@@ -87,6 +75,19 @@ public class DummyCoreAAMAndBTM {
                 platformCert, new HashMap<>()));
 
         return new ResponseEntity<>(aams, HttpStatus.OK);
+    }
+
+    @GetMapping(path = PATH + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE + "/platform/{platformIdentifier}/component/{componentIdentifier}")
+    public String getBTMCertificate() throws NoSuchProviderException, KeyStoreException, IOException,
+            NoSuchAlgorithmException, CertificateException {
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream(PLATFORM_CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("btm");
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        return signedCertificatePEMDataStringWriter.toString();
     }
 
 
