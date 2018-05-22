@@ -14,7 +14,6 @@ import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.RegisteredCouponRepository;
 import eu.h2020.symbiote.security.repositories.entities.RegisteredCoupon;
-import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -46,7 +45,7 @@ public class CoreCouponManagementService {
         Set<String> registeredConsumedCouponIdsSet =
                 registeredCouponRepository.findAllByLastConsumptionTimestampBefore(timestamp)
                         .stream()
-                        .filter(x -> x.getStatus().equals(StoredCoupon.Status.CONSUMED))
+                        .filter(x -> x.getStatus().equals(CouponValidationStatus.CONSUMED_COUPON))
                         .map(RegisteredCoupon::getId).collect(toSet());
         registeredConsumedCouponIdsSet.forEach(x -> registeredCouponRepository.delete(x));
         return registeredConsumedCouponIdsSet.size();
@@ -71,7 +70,7 @@ public class CoreCouponManagementService {
         //update of DISCRETE coupons status
         if (registeredCoupon.getType().equals(Coupon.Type.DISCRETE) &&
                 registeredCoupon.getUsages() >= registeredCoupon.getValidity()) {
-            registeredCoupon.setStatus(StoredCoupon.Status.CONSUMED);
+            registeredCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
         }
         registeredCouponRepository.save(registeredCoupon);
         return couponValidity.getStatus();
@@ -119,22 +118,18 @@ public class CoreCouponManagementService {
             return new CouponValidity(CouponValidationStatus.DB_MISMATCH, Coupon.Type.NULL, 0, 0);
         }
         //update of the PERIODIC coupon status
-        if (registeredCoupon.getStatus().equals(StoredCoupon.Status.VALID) &&
+        if (registeredCoupon.getStatus().equals(CouponValidationStatus.VALID) &&
                 registeredCoupon.getType().equals(Coupon.Type.PERIODIC)) {
 
             if (registeredCoupon.getFirstUseTimestamp() != 0 &&
                     registeredCoupon.getFirstUseTimestamp() + registeredCoupon.getValidity() < actualTimeStamp) {
-                registeredCoupon.setStatus(StoredCoupon.Status.CONSUMED);
+                registeredCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
                 registeredCouponRepository.save(registeredCoupon);
             }
         }
         //checking status
         switch (registeredCoupon.getStatus()) {
-            case REVOKED:
-                return new CouponValidity(CouponValidationStatus.REVOKED_COUPON, Coupon.Type.NULL, 0, 0);
-            case CONSUMED:
-                return new CouponValidity(CouponValidationStatus.CONSUMED_COUPON, Coupon.Type.NULL, 0, 0);
-            default: {
+            case VALID: {
                 if (registeredCoupon.getType().equals(Coupon.Type.DISCRETE)) {
                     return new CouponValidity(CouponValidationStatus.VALID,
                             registeredCoupon.getType(),
@@ -148,6 +143,8 @@ public class CoreCouponManagementService {
                                 registeredCoupon.getValidity() :
                                 registeredCoupon.getValidity() - (actualTimeStamp - registeredCoupon.getFirstUseTimestamp()));
             }
+            default:
+                return new CouponValidity(registeredCoupon.getStatus(), Coupon.Type.NULL, 0, 0);
         }
     }
 }

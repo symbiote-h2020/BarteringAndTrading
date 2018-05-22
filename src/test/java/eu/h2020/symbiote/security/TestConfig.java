@@ -34,7 +34,13 @@ public class TestConfig {
             @Value("${btm.security.KEY_STORE_PASSWORD}") String KEY_STORE_PASSWORD,
             @Value("${btm.security.PV_KEY_PASSWORD}") String PV_KEY_PASSWORD
 
-    ) throws SecurityHandlerException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, UnrecoverableKeyException {
+    ) throws SecurityHandlerException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            UnrecoverableKeyException {
         ComponentSecurityHandlerProvider componentSecurityHandlerProvider = Mockito.mock(ComponentSecurityHandlerProvider.class);
         AAM aam = new AAM("",
                 "",

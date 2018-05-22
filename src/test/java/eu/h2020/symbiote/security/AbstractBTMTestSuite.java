@@ -5,6 +5,9 @@ import eu.h2020.symbiote.security.communication.BTMClient;
 import eu.h2020.symbiote.security.communication.IBTMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.StoredCouponsRepository;
+import eu.h2020.symbiote.security.services.BarteralAccessManagementService;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.utils.DummyCoreAAMAndBTM;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -45,7 +48,13 @@ public abstract class AbstractBTMTestSuite {
     @Autowired
     protected StoredCouponsRepository storedCouponsRepository;
     @Autowired
+    protected CouponIssuer couponIssuer;
+    @Autowired
+    protected CertificationAuthorityHelper certificationAuthorityHelper;
+    @Autowired
     protected DummyCoreAAMAndBTM dummyCoreAAMAndBTM;
+    @Autowired
+    protected BarteralAccessManagementService barteralAccessManagementService;
 
 
     protected ObjectMapper mapper = new ObjectMapper();

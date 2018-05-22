@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.repositories.entities;
 
 import eu.h2020.symbiote.security.commons.Coupon;
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
@@ -19,7 +20,7 @@ public class RegisteredCoupon {
     private long usages;
     private long firstUseTimestamp;
     private long lastConsumptionTimestamp;
-    private StoredCoupon.Status status;
+    private CouponValidationStatus status;
 
     /**
      * for mongo usage
@@ -40,7 +41,7 @@ public class RegisteredCoupon {
         this.usages = 0;
         this.firstUseTimestamp = 0;
         this.lastConsumptionTimestamp = 0;
-        this.status = StoredCoupon.Status.VALID;
+        this.status = CouponValidationStatus.VALID;
 
     }
 
@@ -80,11 +81,11 @@ public class RegisteredCoupon {
         this.lastConsumptionTimestamp = lastConsumptionTimestamp;
     }
 
-    public StoredCoupon.Status getStatus() {
+    public CouponValidationStatus getStatus() {
         return status;
     }
 
-    public void setStatus(StoredCoupon.Status status) {
+    public void setStatus(CouponValidationStatus status) {
         this.status = status;
     }
 

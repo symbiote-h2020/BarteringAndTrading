@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.repositories.entities;
 
 import eu.h2020.symbiote.security.commons.Coupon;
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 
@@ -12,14 +13,14 @@ public class StoredCoupon {
     private String issuer;
     @Indexed
     private Coupon.Type type;
-    private Status status;
+    private CouponValidationStatus status;
 
     public StoredCoupon(Coupon coupon) {
         this.id = coupon.getId();
         this.couponString = coupon.getCoupon();
         this.issuer = coupon.getClaims().getIssuer();
         this.type = coupon.getType();
-        this.status = Status.VALID;
+        this.status = CouponValidationStatus.VALID;
     }
 
     /**
@@ -29,11 +30,11 @@ public class StoredCoupon {
     public StoredCoupon() {
     }
 
-    public Status getStatus() {
+    public CouponValidationStatus getStatus() {
         return status;
     }
 
-    public void setStatus(Status status) {
+    public void setStatus(CouponValidationStatus status) {
         this.status = status;
     }
 
@@ -67,12 +68,6 @@ public class StoredCoupon {
 
     public void setType(Coupon.Type type) {
         this.type = type;
-    }
-
-    public enum Status {
-        VALID,
-        CONSUMED,
-        REVOKED
     }
 
 

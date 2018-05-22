@@ -87,7 +87,7 @@ public class CouponIssuer {
         return jwtBuilder.compact();
     }
 
-    public Coupon getDiscreteCoupon()
+    public Coupon getCoupon(Coupon.Type couponType)
             throws JWTCreationException {
         try {
             Map<String, String> attributes = new HashMap<>();
@@ -96,7 +96,7 @@ public class CouponIssuer {
             }
             Coupon coupon = new Coupon(buildCouponJWT(
                     attributes,
-                    Coupon.Type.DISCRETE,
+                    couponType,
                     couponValidity,
                     deploymentId,
                     certificationAuthorityHelper.getBTMPublicKey(),

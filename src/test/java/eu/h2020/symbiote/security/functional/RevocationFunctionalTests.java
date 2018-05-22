@@ -2,13 +2,13 @@ package eu.h2020.symbiote.security.functional;
 
 import eu.h2020.symbiote.security.AbstractBTMTestSuite;
 import eu.h2020.symbiote.security.commons.Coupon;
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
-import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,10 +35,10 @@ public class RevocationFunctionalTests extends
             WrongCredentialsException,
             InvalidArgumentsException {
 
-        Coupon coupon = couponIssuer.getDiscreteCoupon();
+        Coupon coupon = couponIssuer.getCoupon(Coupon.Type.DISCRETE);
         assertNotNull(coupon.getCoupon());
         assertTrue(storedCouponsRepository.exists(coupon.getId()));
-        assertEquals(StoredCoupon.Status.VALID, storedCouponsRepository.findOne(coupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, storedCouponsRepository.findOne(coupon.getId()).getStatus());
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCouponString(coupon.toString());
@@ -46,6 +46,6 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
 
         assertTrue(Boolean.parseBoolean(btmClient.revokeCoupon(revocationRequest)));
-        assertEquals(StoredCoupon.Status.REVOKED, storedCouponsRepository.findOne(coupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.REVOKED_COUPON, storedCouponsRepository.findOne(coupon.getId()).getStatus());
     }
 }

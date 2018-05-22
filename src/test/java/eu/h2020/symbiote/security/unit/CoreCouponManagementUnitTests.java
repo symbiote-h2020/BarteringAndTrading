@@ -12,7 +12,6 @@ import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.RegisteredCoupon;
-import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import org.junit.After;
 import org.junit.Before;
@@ -79,7 +78,7 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
         assertEquals(0, registeredCoupon.getLastConsumptionTimestamp());
         assertEquals(0, registeredCoupon.getUsages());
         assertEquals(Coupon.Type.DISCRETE, registeredCoupon.getType());
-        assertEquals(StoredCoupon.Status.VALID, registeredCoupon.getStatus());
+        assertEquals(CouponValidationStatus.VALID, registeredCoupon.getStatus());
     }
 
     @Test(expected = AAMException.class)
@@ -198,7 +197,7 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
         assertEquals(1, registeredCoupon.getUsages());
         assertNotEquals(0, registeredCoupon.getFirstUseTimestamp());
         assertNotEquals(0, registeredCoupon.getLastConsumptionTimestamp());
-        assertEquals(StoredCoupon.Status.VALID, registeredCoupon.getStatus());
+        assertEquals(CouponValidationStatus.VALID, registeredCoupon.getStatus());
         //consume it again to change its status
         couponValidationStatus = coreCouponManagementService.consumeCoupon(couponString);
         assertEquals(CouponValidationStatus.VALID, couponValidationStatus);
@@ -206,7 +205,7 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
         registeredCoupon = registeredCouponRepository.findOne(registeredCoupon.getId());
         assertEquals(2, registeredCoupon.getUsages());
         assertNotEquals(registeredCoupon.getFirstUseTimestamp(), registeredCoupon.getLastConsumptionTimestamp());
-        assertEquals(StoredCoupon.Status.CONSUMED, registeredCoupon.getStatus());
+        assertEquals(CouponValidationStatus.CONSUMED_COUPON, registeredCoupon.getStatus());
     }
 
     @Test
@@ -226,7 +225,7 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
         assertEquals(1, registeredCoupon.getUsages());
         assertNotEquals(0, registeredCoupon.getFirstUseTimestamp());
         assertNotEquals(0, registeredCoupon.getLastConsumptionTimestamp());
-        assertEquals(StoredCoupon.Status.VALID, registeredCoupon.getStatus());
+        assertEquals(CouponValidationStatus.VALID, registeredCoupon.getStatus());
         //consume it again
         couponValidationStatus = coreCouponManagementService.consumeCoupon(couponString);
         assertEquals(CouponValidationStatus.VALID, couponValidationStatus);
@@ -234,7 +233,7 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
         registeredCoupon = registeredCouponRepository.findOne(registeredCoupon.getId());
         assertEquals(2, registeredCoupon.getUsages());
         assertNotEquals(registeredCoupon.getFirstUseTimestamp(), registeredCoupon.getLastConsumptionTimestamp());
-        assertEquals(StoredCoupon.Status.VALID, registeredCoupon.getStatus());
+        assertEquals(CouponValidationStatus.VALID, registeredCoupon.getStatus());
     }
 
     @Test
@@ -245,7 +244,7 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
         String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 10000, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
         //save coupon in db
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
-        registeredCoupon.setStatus(StoredCoupon.Status.CONSUMED);
+        registeredCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
         registeredCouponRepository.save(registeredCoupon);
         //consume Coupon
         CouponValidationStatus couponValidationStatus = coreCouponManagementService.consumeCoupon(couponString);
@@ -353,7 +352,7 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
         String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
         //save coupon in db
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
-        registeredCoupon.setStatus(StoredCoupon.Status.CONSUMED);
+        registeredCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
         registeredCouponRepository.save(registeredCoupon);
         //ask for validation
         CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
@@ -384,7 +383,7 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
         String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
         //save coupon in db as revoked
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
-        registeredCoupon.setStatus(StoredCoupon.Status.REVOKED);
+        registeredCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
         registeredCouponRepository.save(registeredCoupon);
         //ask for validation
         CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
@@ -432,23 +431,23 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
         String coupon5 = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
         RegisteredCoupon registeredCoupon1 = new RegisteredCoupon(coupon1);
         registeredCoupon1.setLastConsumptionTimestamp(cleanupTimestamp - 1);
-        registeredCoupon1.setStatus(StoredCoupon.Status.CONSUMED);
+        registeredCoupon1.setStatus(CouponValidationStatus.CONSUMED_COUPON);
         registeredCouponRepository.save(registeredCoupon1);
         RegisteredCoupon registeredCoupon2 = new RegisteredCoupon(coupon2);
         registeredCoupon2.setLastConsumptionTimestamp(cleanupTimestamp + 1);
-        registeredCoupon2.setStatus(StoredCoupon.Status.CONSUMED);
+        registeredCoupon2.setStatus(CouponValidationStatus.CONSUMED_COUPON);
         registeredCouponRepository.save(registeredCoupon2);
         RegisteredCoupon registeredCoupon3 = new RegisteredCoupon(coupon3);
         registeredCoupon3.setLastConsumptionTimestamp(cleanupTimestamp - 1);
-        registeredCoupon3.setStatus(StoredCoupon.Status.CONSUMED);
+        registeredCoupon3.setStatus(CouponValidationStatus.CONSUMED_COUPON);
         registeredCouponRepository.save(registeredCoupon3);
         RegisteredCoupon registeredCoupon4 = new RegisteredCoupon(coupon4);
         registeredCoupon4.setLastConsumptionTimestamp(cleanupTimestamp + 1);
-        registeredCoupon4.setStatus(StoredCoupon.Status.CONSUMED);
+        registeredCoupon4.setStatus(CouponValidationStatus.CONSUMED_COUPON);
         registeredCouponRepository.save(registeredCoupon4);
         RegisteredCoupon registeredCoupon5 = new RegisteredCoupon(coupon5);
         registeredCoupon5.setLastConsumptionTimestamp(cleanupTimestamp - 1);
-        registeredCoupon5.setStatus(StoredCoupon.Status.VALID);
+        registeredCoupon5.setStatus(CouponValidationStatus.VALID);
         registeredCouponRepository.save(registeredCoupon5);
 
         int cleanedCoupons = coreCouponManagementService.cleanupConsumedCoupons(cleanupTimestamp);

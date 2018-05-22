@@ -1,8 +1,8 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
-import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.BarteralAccessRequest;
 import eu.h2020.symbiote.security.communication.payloads.CouponRequest;
@@ -42,21 +42,21 @@ public class BarteralAccessManagementController implements IBarteralAccessManage
         this.barteralAccessManagementService = barteralAccessManagementService;
     }
 
-    //TODO
     @Override
     @ApiOperation(value = "Request coupon from foreign BTM")
     @ApiResponses({
-            @ApiResponse(code = 400, message = "TODO"),
-            @ApiResponse(code = 500, message = "TODO")})
+            @ApiResponse(code = 400, message = "Error validating couponRequest occured"),
+            @ApiResponse(code = 500, message = "Internal server error occured")})
     public ResponseEntity<String> getCoupon(@RequestBody CouponRequest couponRequest) {
         try {
-            Coupon coupon = barteralAccessManagementService.getCoupon(couponRequest);
-            return new ResponseEntity<>(coupon.getCoupon(), HttpStatus.OK);
+            return new ResponseEntity<>(barteralAccessManagementService.getCoupon(couponRequest), HttpStatus.OK);
         } catch (ValidationException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>("Wrong couponRequest", HttpStatus.BAD_REQUEST);
+        } catch (JWTCreationException | BTMException e) {
+            log.error(e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
     //TODO

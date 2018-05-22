@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.services.helpers;
 
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
@@ -58,7 +59,7 @@ public class RevocationHelper {
             return false;
         }
         StoredCoupon storedCoupon = storedCouponsRepository.findOne(couponClaims.getJti());
-        storedCoupon.setStatus(StoredCoupon.Status.REVOKED);
+        storedCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
         storedCouponsRepository.save(storedCoupon);
         log.debug("Coupon: %s was revoked succesfully", couponClaims.getJti());
         return true;
