@@ -141,7 +141,7 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
         storedCouponsRepository.save(storedCoupon);
         assertEquals(CouponValidationStatus.VALID, storedCoupon.getStatus());
         //create request (checking SecurityRequest is mocked) using own platformId
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, certificationAuthorityHelper.getBTMInstanceIdentifier(), null);
+        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, certificationAuthorityHelper.getBTMPlatformInstanceIdentifier(), null);
         String couponString = barteralAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);
@@ -181,7 +181,7 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
         storedCouponsRepository.save(storedCoupon);
         assertEquals(CouponValidationStatus.VALID, storedCoupon.getStatus());
         //create request (checking SecurityRequest is mocked) using own platformId
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, certificationAuthorityHelper.getBTMInstanceIdentifier(), null);
+        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, certificationAuthorityHelper.getBTMPlatformInstanceIdentifier(), null);
         String couponString = barteralAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);

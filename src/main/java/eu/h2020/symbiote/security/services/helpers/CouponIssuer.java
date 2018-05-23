@@ -49,7 +49,7 @@ public class CouponIssuer {
     public CouponIssuer(CertificationAuthorityHelper certificationAuthorityHelper,
                         StoredCouponsRepository storedCouponsRepository) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
-        this.deploymentId = certificationAuthorityHelper.getBTMInstanceIdentifier();
+        this.deploymentId = certificationAuthorityHelper.getBTMPlatformInstanceIdentifier();
         this.storedCouponsRepository = storedCouponsRepository;
     }
 
