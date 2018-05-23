@@ -1,13 +1,15 @@
 package eu.h2020.symbiote.security.unit;
 
-import eu.h2020.symbiote.security.AbstractBTMTestSuite;
+import eu.h2020.symbiote.security.AbstractCoreBTMTestSuite;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
 import eu.h2020.symbiote.security.communication.payloads.RevocationResponse;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.entities.RegisteredCoupon;
 import eu.h2020.symbiote.security.services.RevocationService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
@@ -15,69 +17,104 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.HashMap;
+import java.util.Map;
 
+import static eu.h2020.symbiote.security.services.helpers.CouponIssuer.buildCouponJWT;
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 /**
  * Test suite for revocation (unit tests)
  *
  * @author Jakub Toczek (PSNC)
  */
-@TestPropertySource("/service.properties")
+@TestPropertySource("/core.properties")
 public class RevocationUnitTests extends
-        AbstractBTMTestSuite {
+        AbstractCoreBTMTestSuite {
 
     @Autowired
     private RevocationService revocationService;
-    @Autowired
-    private CouponIssuer couponIssuer;
     @Autowired
     private CertificationAuthorityHelper certificationAuthorityHelper;
 
 
     @Test
     public void revokeCouponByAdminSuccess() throws
-            JWTCreationException {
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            MalformedJWTException,
+            ValidationException {
 
         // acquiring valid coupon
-        Coupon discreteCoupon = couponIssuer.getCoupon(Coupon.Type.DISCRETE);
+        Map<String, String> attributes = new HashMap<>();
+        KeyPair keyPair = CryptoHelper.createKeyPair();
+        String couponString = buildCouponJWT(
+                attributes,
+                Coupon.Type.DISCRETE,
+                100,
+                "coupon",
+                keyPair.getPublic(),
+                keyPair.getPrivate()
+        );
+        assertNotNull(couponString);
+        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
+        registeredCouponRepository.save(registeredCoupon);
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
-        revocationRequest.setCouponString(discreteCoupon.getCoupon());
+        revocationRequest.setCouponString(couponString);
 
         // verify the user coupon is not yet revoked
-        assertEquals(CouponValidationStatus.VALID, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
         // revocation
         RevocationResponse response = revocationService.revoke(revocationRequest);
 
         // verify the user coupon is revoked
         assertTrue(response.isRevoked());
-        assertEquals(CouponValidationStatus.REVOKED_COUPON, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.REVOKED_COUPON, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
     }
 
     @Test
     public void revokeCouponFailWrongRevocationRequest() throws
-            JWTCreationException {
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            MalformedJWTException,
+            ValidationException {
         // acquiring valid coupon
-        Coupon discreteCoupon = couponIssuer.getCoupon(Coupon.Type.DISCRETE);
+        Map<String, String> attributes = new HashMap<>();
+        KeyPair keyPair = CryptoHelper.createKeyPair();
+        String couponString = buildCouponJWT(
+                attributes,
+                Coupon.Type.DISCRETE,
+                100,
+                "coupon",
+                keyPair.getPublic(),
+                keyPair.getPrivate()
+        );
+        assertNotNull(couponString);
+        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
+        registeredCouponRepository.save(registeredCoupon);
         // verify the user token is not yet revoked
-        assertEquals(CouponValidationStatus.VALID, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials("wrongUsername", BTMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
-        revocationRequest.setCouponString(discreteCoupon.getCoupon());
+        revocationRequest.setCouponString(registeredCoupon.getCouponString());
         // revocation using wrong admin name
         RevocationResponse response = revocationService.revoke(revocationRequest);
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(CouponValidationStatus.VALID, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
 
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, "wrong password"));
         // revocation using wrong admin password
@@ -85,7 +122,7 @@ public class RevocationUnitTests extends
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(CouponValidationStatus.VALID, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
 
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -94,7 +131,7 @@ public class RevocationUnitTests extends
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(CouponValidationStatus.VALID, storedCouponsRepository.findOne(discreteCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
 
     }
 

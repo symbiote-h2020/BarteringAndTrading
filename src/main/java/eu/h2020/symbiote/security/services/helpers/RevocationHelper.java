@@ -6,15 +6,13 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTExceptio
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.repositories.StoredCouponsRepository;
-import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
+import eu.h2020.symbiote.security.repositories.RegisteredCouponRepository;
+import eu.h2020.symbiote.security.repositories.entities.RegisteredCoupon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-
-import java.util.Base64;
 
 /**
  * Helper for revoking coupons.
@@ -22,45 +20,33 @@ import java.util.Base64;
  * @author Mikołaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
  */
-@Profile("platform")
+@Profile("core")
 @Component
 public class RevocationHelper {
     private static final Logger log = LoggerFactory.getLogger(RevocationHelper.class);
 
-    private final StoredCouponsRepository storedCouponsRepository;
-    private final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final RegisteredCouponRepository registeredCouponRepository;
 
 
     @Autowired
-    public RevocationHelper(StoredCouponsRepository storedCouponsRepository,
-                            CertificationAuthorityHelper certificationAuthorityHelper) {
-        this.storedCouponsRepository = storedCouponsRepository;
-        this.certificationAuthorityHelper = certificationAuthorityHelper;
+    public RevocationHelper(RegisteredCouponRepository registeredCouponRepository) {
+        this.registeredCouponRepository = registeredCouponRepository;
     }
-
 
     public boolean revokeCouponByAdmin(String couponString) throws
             ValidationException,
             MalformedJWTException {
         if (JWTEngine.validateJWTString(couponString) != ValidationStatus.VALID) {
-            throw new ValidationException(ValidationException.INVALID_TOKEN);
+            throw new ValidationException("Received coupon is not valid.");
         }
         JWTClaims couponClaims = JWTEngine.getClaimsFromJWT(couponString);
-        if (!certificationAuthorityHelper.getBTMInstanceIdentifier().equals(couponClaims.getIss())) {
-            log.error("Coupon was not issued by this BTM. The issuer is: " + couponClaims.getIss());
-            return false;
-        }
-        if (!couponClaims.getIpk().equals(Base64.getEncoder().encodeToString(certificationAuthorityHelper.getBTMPublicKey().getEncoded()))) {
-            log.error("Public key from coupon differs from owned by BTM.");
-            return false;
-        }
-        if (!storedCouponsRepository.exists(couponClaims.getJti())) {
+        if (!registeredCouponRepository.exists(RegisteredCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()))) {
             log.error("Coupon doesn't exist in issued coupons repository!");
             return false;
         }
-        StoredCoupon storedCoupon = storedCouponsRepository.findOne(couponClaims.getJti());
-        storedCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
-        storedCouponsRepository.save(storedCoupon);
+        RegisteredCoupon registeredCoupon = registeredCouponRepository.findOne(RegisteredCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()));
+        registeredCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
+        registeredCouponRepository.save(registeredCoupon);
         log.debug("Coupon: %s was revoked succesfully", couponClaims.getJti());
         return true;
 
