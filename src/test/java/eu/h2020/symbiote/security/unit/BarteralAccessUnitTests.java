@@ -3,9 +3,8 @@ package eu.h2020.symbiote.security.unit;
 import eu.h2020.symbiote.security.AbstractBTMTestSuite;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.communication.payloads.BarteralAccessRequest;
 import eu.h2020.symbiote.security.communication.payloads.CouponRequest;
 import eu.h2020.symbiote.security.handler.ComponentSecurityHandler;
 import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
@@ -39,11 +38,97 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
         ComponentSecurityHandler mockedComponentSecurityHandler = Mockito.mock(ComponentSecurityHandler.class);
         Set<String> set = new HashSet<>();
         set.add(BTM_AP_NAME);
-        when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.anyMap(), Mockito.any())).thenReturn(set);
+        when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(set);
         when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
         ReflectionTestUtils.setField(barteralAccessManagementService, "btmCoreAddress", serverAddress + "/test/btm");
+        ReflectionTestUtils.setField(barteralAccessManagementService, "coreInterfaceAddress", serverAddress + "/test/caam");
         dummyCoreAAMAndBTM.registrationStatus = HttpStatus.OK;
         dummyCoreAAMAndBTM.couponValidationStatus = CouponValidationStatus.VALID;
+        dummyPlatformBTM.receivedCouponIssuer = dummyPlatformId;
+    }
+
+    @Test
+    public void authorizeBarteralAccessSuccessReceivedLocalCoupon() throws
+            SecurityHandlerException,
+            BTMException,
+            AAMException,
+            ValidationException {
+        dummyPlatformBTM.receivedCouponIssuer = certificationAuthorityHelper.getBTMPlatformInstanceIdentifier();
+        BarteralAccessRequest barteralAccessRequest = new BarteralAccessRequest(dummyPlatformId, "resourceId", Coupon.Type.DISCRETE);
+        assertTrue(barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest));
+        //no coupon saved in db
+        assertEquals(0, storedCouponsRepository.count());
+    }
+
+    @Test
+    public void authorizeBarteralAccessSuccessReceivedForeignCoupon() throws
+            SecurityHandlerException,
+            BTMException,
+            AAMException,
+            ValidationException {
+        dummyPlatformBTM.receivedCouponIssuer = dummyPlatformId;
+        BarteralAccessRequest barteralAccessRequest = new BarteralAccessRequest(dummyPlatformId, "resourceId", Coupon.Type.DISCRETE);
+        assertTrue(barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest));
+        //coupon saved in db
+        assertEquals(1, storedCouponsRepository.count());
+    }
+
+    @Test(expected = AAMException.class)
+    public void authorizeBarteralAccessFailNoCoreConnection() throws
+            SecurityHandlerException,
+            BTMException,
+            AAMException,
+            ValidationException {
+        ReflectionTestUtils.setField(barteralAccessManagementService, "coreInterfaceAddress", serverAddress + "/wrong_address");
+        BarteralAccessRequest barteralAccessRequest = new BarteralAccessRequest(dummyPlatformId, "resourceId", Coupon.Type.DISCRETE);
+        barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest);
+    }
+
+    @Test(expected = BTMException.class)
+    public void authorizeBarteralAccessFailClientPlatformNotRegistered() throws
+            SecurityHandlerException,
+            BTMException,
+            AAMException,
+            ValidationException {
+        BarteralAccessRequest barteralAccessRequest = new BarteralAccessRequest("notRegisteredPlatformId", "resourceId", Coupon.Type.DISCRETE);
+        barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest);
+
+    }
+
+    @Test(expected = SecurityHandlerException.class)
+    public void authorizeBarteralAccessFailSecurityRequestCreation() throws
+            SecurityHandlerException,
+            ValidationException,
+            BTMException,
+            AAMException {
+        ComponentSecurityHandler mockedComponentSecurityHandler = Mockito.mock(ComponentSecurityHandler.class);
+        when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenThrow(new SecurityHandlerException(""));
+        when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
+        BarteralAccessRequest barteralAccessRequest = new BarteralAccessRequest(dummyPlatformId, "resourceId", Coupon.Type.DISCRETE);
+        barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest);
+    }
+
+    @Test
+    public void authorizeBarteralAccessFailReceivedLocalCouponNotValid() throws
+            SecurityHandlerException,
+            BTMException,
+            AAMException,
+            ValidationException {
+        dummyPlatformBTM.receivedCouponIssuer = certificationAuthorityHelper.getBTMPlatformInstanceIdentifier();
+        dummyCoreAAMAndBTM.consumptionStatus = HttpStatus.BAD_REQUEST;
+        BarteralAccessRequest barteralAccessRequest = new BarteralAccessRequest(dummyPlatformId, "resourceId", Coupon.Type.DISCRETE);
+        assertFalse(barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest));
+    }
+
+    @Test
+    public void authorizeBarteralAccessFailReceivedForeignCouponNotValid() throws
+            SecurityHandlerException,
+            BTMException,
+            AAMException,
+            ValidationException {
+        dummyCoreAAMAndBTM.couponValidationStatus = CouponValidationStatus.CONSUMED_COUPON;
+        BarteralAccessRequest barteralAccessRequest = new BarteralAccessRequest(dummyPlatformId, "resourceId", Coupon.Type.DISCRETE);
+        assertFalse(barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest));
     }
 
     @Test

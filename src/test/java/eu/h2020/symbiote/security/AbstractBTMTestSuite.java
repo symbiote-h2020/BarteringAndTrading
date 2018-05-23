@@ -9,6 +9,7 @@ import eu.h2020.symbiote.security.services.BarteralAccessManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.utils.DummyCoreAAMAndBTM;
+import eu.h2020.symbiote.security.utils.DummyPlatformBTM;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -53,6 +54,8 @@ public abstract class AbstractBTMTestSuite {
     protected CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
     protected DummyCoreAAMAndBTM dummyCoreAAMAndBTM;
+    @Autowired
+    protected DummyPlatformBTM dummyPlatformBTM;
     @Autowired
     protected BarteralAccessManagementService barteralAccessManagementService;
 
@@ -135,7 +138,6 @@ public abstract class AbstractBTMTestSuite {
         userKeyPair = CryptoHelper.createKeyPair();
         dummyCoreAAMAndBTM.port = port;
         // cleanup db
-
         storedCouponsRepository.deleteAll();
     }
 }

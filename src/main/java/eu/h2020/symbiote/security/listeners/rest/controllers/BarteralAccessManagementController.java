@@ -1,9 +1,6 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
-import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.BarteralAccessRequest;
 import eu.h2020.symbiote.security.communication.payloads.CouponRequest;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IBarteralAccessManagement;
@@ -81,7 +78,7 @@ public class BarteralAccessManagementController implements IBarteralAccessManage
             }
             //TODO
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        } catch (InvalidArgumentsException | BTMException e) {
+        } catch (InvalidArgumentsException | BTMException | ValidationException | SecurityHandlerException | AAMException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(e.getErrorMessage(), HttpStatus.BAD_REQUEST);
         }

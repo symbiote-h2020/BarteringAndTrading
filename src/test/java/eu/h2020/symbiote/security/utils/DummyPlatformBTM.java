@@ -2,17 +2,15 @@ package eu.h2020.symbiote.security.utils;
 
 
 import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
+import eu.h2020.symbiote.security.communication.payloads.CouponRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.FileInputStream;
@@ -39,7 +37,7 @@ public class DummyPlatformBTM {
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/platform/btm";
     private static final String platformId = "dummy-platform";
-    public ExchangeState exchangeState = ExchangeState.OK;
+    public String receivedCouponIssuer = platformId;
     public int port;
     private KeyStore ks;
     private Key key;
@@ -53,35 +51,21 @@ public class DummyPlatformBTM {
         this.key = ks.getKey(BTM_CERTIFICATE_ALIAS, CERTIFICATE_PASSWORD.toCharArray());
     }
 
-    @PostMapping(path = PATH + SecurityConstants.BTM_AUTHORIZE_BARTERAL_ACCESS)
-    public ResponseEntity<String> exchangeCoupon(@RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString) throws KeyStoreException, ValidationException {
+    @PostMapping(path = PATH + SecurityConstants.BTM_GET_COUPON)
+    public ResponseEntity<String> exchangeCoupon(@RequestBody CouponRequest couponRequest) throws
+            KeyStoreException {
         Map<String, String> attributes = new HashMap<>();
-        Coupon coupon = new Coupon(buildCouponJWT(
+        String couponString = buildCouponJWT(
                 attributes,
-                Coupon.Type.DISCRETE,
+                couponRequest.getCouponType(),
                 100,
-                platformId,
+                receivedCouponIssuer,
                 ks.getCertificate(BTM_CERTIFICATE_ALIAS).getPublicKey(),
                 (PrivateKey) key
-        ));
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(SecurityConstants.COUPON_HEADER_NAME, coupon.getCoupon());
-        switch (exchangeState) {
-            case OK:
-                return new ResponseEntity<>(headers, HttpStatus.OK);
-            case REFUSED:
-                return new ResponseEntity<>("", HttpStatus.FORBIDDEN);
-            default:
-                throw new ValidationException("No connection");
-        }
+        );
+        return new ResponseEntity<>(couponString, HttpStatus.OK);
     }
 
-
-    public enum ExchangeState {
-        OK,
-        NO_CONNECTION,
-        REFUSED
-    }
 
 }
 

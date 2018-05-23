@@ -45,6 +45,7 @@ public class DummyCoreAAMAndBTM {
     private static final String platform1Id = "dummy-platform";
     public int port;
     public HttpStatus registrationStatus = HttpStatus.OK;
+    public HttpStatus consumptionStatus = HttpStatus.OK;
     public CouponValidationStatus couponValidationStatus = CouponValidationStatus.VALID;
     private Certificate coreCert;
     private AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
@@ -100,6 +101,11 @@ public class DummyCoreAAMAndBTM {
     @PostMapping(path = BTM_PATH + SecurityConstants.BTM_REGISTER_COUPON)
     public ResponseEntity<String> registerCoupon(String couponString) {
         return new ResponseEntity<>(registrationStatus);
+    }
+
+    @PostMapping(path = BTM_PATH + SecurityConstants.BTM_CONSUME_COUPON)
+    public ResponseEntity<String> consumeCoupon(String couponString) {
+        return new ResponseEntity<>(consumptionStatus);
     }
 
     @PostMapping(path = BTM_PATH + SecurityConstants.BTM_IS_COUPON_VALID)

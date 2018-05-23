@@ -65,9 +65,14 @@ public class BarteralAccessManagementService {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
     }
 
-    public boolean authorizeBarteralAccess(BarteralAccessRequest barteralAccessRequest) throws BTMException, AAMException, ValidationException {
+    public boolean authorizeBarteralAccess(BarteralAccessRequest barteralAccessRequest) throws
+            BTMException,
+            AAMException,
+            ValidationException,
+            SecurityHandlerException {
         BTMClient coreBtmClient = new BTMClient(btmCoreAddress);
         AAMClient aamClient = new AAMClient(coreInterfaceAddress);
+        //get clients btm address
         Map<String, AAM> availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
         if (!availableAAMs.containsKey(barteralAccessRequest.getClientPlatform())) {
             throw new BTMException("Clients platform is not registered in CoreAAM.");
@@ -76,18 +81,14 @@ public class BarteralAccessManagementService {
         String clientBtmAddress = clientPlatformAddress.endsWith("/aam") ? clientPlatformAddress.substring(0, clientPlatformAddress.length() - 4) + BTM_SUFFIX : clientPlatformAddress + BTM_SUFFIX;
         //ask for new coupon
         BTMClient btmClient = new BTMClient(clientBtmAddress);
-        CouponRequest couponRequest;
-        try {
-            //generate coupon Request
-            couponRequest = new CouponRequest(barteralAccessRequest.getCouponType(),
+        //generate coupon Request
+        CouponRequest couponRequest = new CouponRequest(barteralAccessRequest.getCouponType(),
                     certificationAuthorityHelper.getBTMPlatformInstanceIdentifier(),
                     componentSecurityHandlerProvider.getComponentSecurityHandler().generateSecurityRequestUsingLocalCredentials());
-        } catch (SecurityHandlerException e) {
-            throw new SecurityException("TODO");
-        }
+
         String receivedCouponString = btmClient.getCoupon(couponRequest);
         Claims claims = JWTEngine.getClaims(receivedCouponString);
-        //if received our coupon and validated properly
+        //if received our coupon but not validated properly
         if (claims.getIssuer().equals(certificationAuthorityHelper.getBTMPlatformInstanceIdentifier())
                 && !coreBtmClient.consumeCoupon(receivedCouponString)) {
             return false;
@@ -99,6 +100,7 @@ public class BarteralAccessManagementService {
             // TODO: validate B&T
             if (!couponValidity.getStatus().equals(CouponValidationStatus.VALID))
                 return false;
+            log.info("Received and saved new valid coupon from: " + barteralAccessRequest.getClientPlatform());
             storedCouponsRepository.save(new StoredCoupon(new Coupon(receivedCouponString)));
         }
         return true;
