@@ -149,7 +149,7 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
     }
 
     @Test(expected = BTMException.class)
-    public void authorizeBarteralAccessFailClientPlatformNotRegistered() throws
+    public void authorizeBarteralAccessFailClientsPlatformNotRegistered() throws
             SecurityHandlerException,
             BTMException,
             AAMException,
@@ -168,7 +168,19 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
 
         BarteralAccessRequest barteralAccessRequest = new BarteralAccessRequest("notRegisteredPlatformId", federationId, "resourceId", Coupon.Type.DISCRETE);
         barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest);
+    }
 
+    @Test
+    public void authorizeBarteralAccessFailReturnedCouponWithWrongFederationId() throws
+            SecurityHandlerException,
+            BTMException,
+            AAMException,
+            ValidationException,
+            InvalidArgumentsException {
+        federation.setId("wrongId");
+        federationsRepository.save(federation);
+        BarteralAccessRequest barteralAccessRequest = new BarteralAccessRequest(dummyPlatformId, "wrongId", "resourceId", Coupon.Type.DISCRETE);
+        assertFalse(barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest));
     }
 
     @Test(expected = SecurityHandlerException.class)
@@ -219,11 +231,11 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
             BTMException,
             ValidationException {
         //put proper VALID coupon into repo
-        StoredCoupon storedCoupon = new StoredCoupon(couponIssuer.getCoupon(Coupon.Type.DISCRETE));
+        StoredCoupon storedCoupon = new StoredCoupon(couponIssuer.getCoupon(Coupon.Type.DISCRETE, federationId));
         storedCouponsRepository.save(storedCoupon);
         assertEquals(CouponValidationStatus.VALID, storedCoupon.getStatus());
         //create request (checking SecurityRequest is mocked) using own platformId
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, certificationAuthorityHelper.getBTMPlatformInstanceIdentifier(), null);
+        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, certificationAuthorityHelper.getBTMPlatformInstanceIdentifier(), null);
         String couponString = barteralAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);
@@ -242,7 +254,7 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
         //check if repo is empty
         assertEquals(0, storedCouponsRepository.count());
         //create request (checking SecurityRequest is mocked)
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, PLATFORM_ID, null);
+        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, PLATFORM_ID, null);
         String couponString = barteralAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);
@@ -259,11 +271,11 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
         // change dummy Core BTM to return proper validation status
         dummyCoreAAMAndBTM.couponValidationStatus = CouponValidationStatus.CONSUMED_COUPON;
         //put proper VALID coupon into repo
-        StoredCoupon storedCoupon = new StoredCoupon(couponIssuer.getCoupon(Coupon.Type.DISCRETE));
+        StoredCoupon storedCoupon = new StoredCoupon(couponIssuer.getCoupon(Coupon.Type.DISCRETE, federationId));
         storedCouponsRepository.save(storedCoupon);
         assertEquals(CouponValidationStatus.VALID, storedCoupon.getStatus());
         //create request (checking SecurityRequest is mocked) using own platformId
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, certificationAuthorityHelper.getBTMPlatformInstanceIdentifier(), null);
+        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, certificationAuthorityHelper.getBTMPlatformInstanceIdentifier(), null);
         String couponString = barteralAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);
@@ -286,7 +298,7 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
         when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(new HashSet<>());
         when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
         //create request (checking SecurityRequest is mocked)
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, PLATFORM_ID, null);
+        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, PLATFORM_ID, null);
         barteralAccessManagementService.getCoupon(couponRequest);
     }
 
@@ -297,7 +309,7 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
             ValidationException {
         ReflectionTestUtils.setField(barteralAccessManagementService, "btmCoreAddress", "Wrong value");
         //create request (checking SecurityRequest is mocked)
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, PLATFORM_ID, null);
+        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, PLATFORM_ID, null);
         barteralAccessManagementService.getCoupon(couponRequest);
     }
 
@@ -309,7 +321,7 @@ public class BarteralAccessUnitTests extends AbstractBTMTestSuite {
         // change dummy Core BTM to return proper registrationStatus
         dummyCoreAAMAndBTM.registrationStatus = HttpStatus.BAD_REQUEST;
         //create request (checking SecurityRequest is mocked)
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, PLATFORM_ID, null);
+        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, PLATFORM_ID, null);
         barteralAccessManagementService.getCoupon(couponRequest);
     }
 

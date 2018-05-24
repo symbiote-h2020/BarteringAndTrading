@@ -21,8 +21,6 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.util.HashMap;
-import java.util.Map;
 
 import static eu.h2020.symbiote.security.services.helpers.CouponIssuer.buildCouponJWT;
 import static junit.framework.TestCase.assertTrue;
@@ -52,13 +50,12 @@ public class RevocationUnitTests extends
             ValidationException {
 
         // acquiring valid coupon
-        Map<String, String> attributes = new HashMap<>();
         KeyPair keyPair = CryptoHelper.createKeyPair();
         String couponString = buildCouponJWT(
-                attributes,
                 Coupon.Type.DISCRETE,
                 100,
                 "coupon",
+                FEDERATION_ID,
                 keyPair.getPublic(),
                 keyPair.getPrivate()
         );
@@ -89,13 +86,12 @@ public class RevocationUnitTests extends
             MalformedJWTException,
             ValidationException {
         // acquiring valid coupon
-        Map<String, String> attributes = new HashMap<>();
         KeyPair keyPair = CryptoHelper.createKeyPair();
         String couponString = buildCouponJWT(
-                attributes,
                 Coupon.Type.DISCRETE,
                 100,
                 "coupon",
+                FEDERATION_ID,
                 keyPair.getPublic(),
                 keyPair.getPrivate()
         );
@@ -149,10 +145,10 @@ public class RevocationUnitTests extends
     @Test
     public void revokeCouponFailWrongIssuer() throws ValidationException {
         Coupon coupon = new Coupon(CouponIssuer.buildCouponJWT(
-                new HashMap<>(),
                 Coupon.Type.DISCRETE,
                 1,
                 "Wrong Issuer",
+                FEDERATION_ID,
                 certificationAuthorityHelper.getBTMPublicKey(),
                 certificationAuthorityHelper.getBTMPrivateKey()
         ));

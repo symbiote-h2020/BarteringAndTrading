@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
 import eu.h2020.symbiote.security.commons.Coupon;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
@@ -105,14 +106,21 @@ public class BarteralAccessManagementService {
         BTMClient btmClient = new BTMClient(clientBtmAddress);
         //generate coupon Request
         CouponRequest couponRequest = new CouponRequest(barteralAccessRequest.getCouponType(),
-                    certificationAuthorityHelper.getBTMPlatformInstanceIdentifier(),
-                    componentSecurityHandlerProvider.getComponentSecurityHandler().generateSecurityRequestUsingLocalCredentials());
+                barteralAccessRequest.getFederationId(),
+                certificationAuthorityHelper.getBTMPlatformInstanceIdentifier(),
+                componentSecurityHandlerProvider.getComponentSecurityHandler().generateSecurityRequestUsingLocalCredentials());
 
         String receivedCouponString = btmClient.getCoupon(couponRequest);
         Claims claims = JWTEngine.getClaims(receivedCouponString);
+        // check, if coupon is for proper federation Id
+        if (!claims.get(SecurityConstants.CLAIM_NAME_FEDERATION_ID, String.class).equals(barteralAccessRequest.getFederationId())) {
+            log.error("Coupon does not contain proper federation Id.");
+            return false;
+        }
         //if received our coupon but not validated properly
         if (claims.getIssuer().equals(certificationAuthorityHelper.getBTMPlatformInstanceIdentifier())
                 && !coreBtmClient.consumeCoupon(receivedCouponString)) {
+            log.error("Core did not confirmed coupon consumption.");
             return false;
         }
         //if received foreign coupon for bartering
@@ -120,8 +128,10 @@ public class BarteralAccessManagementService {
             // validate coupon in core
             CouponValidity couponValidity = coreBtmClient.isCouponValid(receivedCouponString);
             // TODO: validate B&T
-            if (!couponValidity.getStatus().equals(CouponValidationStatus.VALID))
+            if (!couponValidity.getStatus().equals(CouponValidationStatus.VALID)) {
+                log.error("Coupon received for bartering did not pass validation in Core.");
                 return false;
+            }
             log.info("Received and saved new valid coupon from: " + barteralAccessRequest.getClientPlatform());
             storedCouponsRepository.save(new StoredCoupon(new Coupon(receivedCouponString)));
         }
@@ -147,23 +157,20 @@ public class BarteralAccessManagementService {
             BTMClient btmClient = new BTMClient(btmCoreAddress);
 
             //search for all stored coupons
-            HashSet<StoredCoupon> storedCouponHashSet = storedCouponsRepository.findAllByIssuerAndType(couponRequest.getPlatformId(), couponRequest.getCouponType());
+            HashSet<StoredCoupon> storedCouponHashSet = storedCouponsRepository.findAllByIssuerAndTypeAndFederationIdAndStatus(couponRequest.getPlatformId(), couponRequest.getCouponType(), couponRequest.getFederationId(), CouponValidationStatus.VALID);
             for (StoredCoupon storedCoupon : storedCouponHashSet) {
-                //find all VALID stored coupons and check their validity again
-                if (storedCoupon.getStatus().equals(CouponValidationStatus.VALID)) {
-                    // validate coupon in core
-                    CouponValidity couponValidity = btmClient.isCouponValid(storedCoupon.getCouponString());
-                    // if core confirms Validity of the coupon - return it
-                    if (couponValidity.getStatus().equals(CouponValidationStatus.VALID)) {
-                        return storedCoupon.getCouponString();
-                    }
-                    //else update db
-                    storedCoupon.setStatus(couponValidity.getStatus());
-                    storedCouponsRepository.save(storedCoupon);
+                // validate coupon in core
+                CouponValidity couponValidity = btmClient.isCouponValid(storedCoupon.getCouponString());
+                // if core confirms Validity of the coupon - return it
+                if (couponValidity.getStatus().equals(CouponValidationStatus.VALID)) {
+                    return storedCoupon.getCouponString();
                 }
+                //else update db
+                storedCoupon.setStatus(couponValidity.getStatus());
+                storedCouponsRepository.save(storedCoupon);
             }
             // if no valid coupon found - create new for bartering
-            Coupon coupon = couponIssuer.getCoupon(couponRequest.getCouponType());
+            Coupon coupon = couponIssuer.getCoupon(couponRequest.getCouponType(), couponRequest.getFederationId());
             //register coupon in core
             if (!btmClient.registerCoupon(coupon.getCoupon())) {
                 storedCouponsRepository.delete(coupon.getId());

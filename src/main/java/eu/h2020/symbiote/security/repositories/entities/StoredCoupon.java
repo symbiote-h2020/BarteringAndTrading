@@ -13,12 +13,14 @@ public class StoredCoupon {
     private String issuer;
     @Indexed
     private Coupon.Type type;
+    private String federationId;
     private CouponValidationStatus status;
 
     public StoredCoupon(Coupon coupon) {
         this.id = coupon.getId();
         this.couponString = coupon.getCoupon();
         this.issuer = coupon.getClaims().getIssuer();
+        this.federationId = coupon.getClaims().get("fedId", String.class);
         this.type = coupon.getType();
         this.status = CouponValidationStatus.VALID;
     }
@@ -70,5 +72,7 @@ public class StoredCoupon {
         this.type = type;
     }
 
-
+    public String getFederationId() {
+        return federationId;
+    }
 }

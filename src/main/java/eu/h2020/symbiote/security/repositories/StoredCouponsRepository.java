@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.repositories;
 
 import eu.h2020.symbiote.security.commons.Coupon;
+import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -17,5 +18,5 @@ public interface StoredCouponsRepository extends MongoRepository<StoredCoupon, S
 
     HashSet<StoredCoupon> findAllByIssuer(String id);
 
-    HashSet<StoredCoupon> findAllByIssuerAndType(String issuer, Coupon.Type type);
+    HashSet<StoredCoupon> findAllByIssuerAndTypeAndFederationIdAndStatus(String issuer, Coupon.Type type, String federationId, CouponValidationStatus couponValidationStatus);
 }

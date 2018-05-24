@@ -53,10 +53,10 @@ public class CouponIssuer {
         this.storedCouponsRepository = storedCouponsRepository;
     }
 
-    public static String buildCouponJWT(Map<String, String> attributes,
-                                        Coupon.Type voucherType,
+    public static String buildCouponJWT(Coupon.Type voucherType,
                                         long tokenValidity,
                                         String issuer,
+                                        String federationId,
                                         PublicKey issuerPublicKey,
                                         PrivateKey issuerPrivateKey) {
         ECDSAHelper.enableECDSAProvider();
@@ -66,15 +66,11 @@ public class CouponIssuer {
 
         // Insert B&T Public Key
         claimsMap.put("ipk", Base64.getEncoder().encodeToString(issuerPublicKey.getEncoded()));
-        claimsMap.put("val", tokenValidity);
-
-        //Add symbIoTe related attributes to token
-        if (attributes != null && !attributes.isEmpty()) {
-            for (Map.Entry<String, String> entry : attributes.entrySet()) {
-                claimsMap.put(entry.getKey(), entry.getValue());
-            }
-        }
-        //Insert token type
+        // Insert B&T validity
+        claimsMap.put(SecurityConstants.CLAIM_NAME_COUPON_VALIDITY, tokenValidity);
+        // Insert B&T federation Id
+        claimsMap.put(SecurityConstants.CLAIM_NAME_FEDERATION_ID, federationId);
+        //Insert coupon type
         claimsMap.put(SecurityConstants.CLAIM_NAME_TOKEN_TYPE, voucherType);
 
         JwtBuilder jwtBuilder = Jwts.builder();
@@ -87,18 +83,17 @@ public class CouponIssuer {
         return jwtBuilder.compact();
     }
 
-    public Coupon getCoupon(Coupon.Type couponType)
+    public Coupon getCoupon(Coupon.Type couponType, String federationId)
             throws JWTCreationException {
         try {
-            Map<String, String> attributes = new HashMap<>();
             if (couponValidity < 1) {
                 throw new InvalidArgumentsException("Coupon with such validity would not be valid at all.");
             }
             Coupon coupon = new Coupon(buildCouponJWT(
-                    attributes,
                     couponType,
                     couponValidity,
                     deploymentId,
+                    federationId,
                     certificationAuthorityHelper.getBTMPublicKey(),
                     certificationAuthorityHelper.getBTMPrivateKey()
             ));

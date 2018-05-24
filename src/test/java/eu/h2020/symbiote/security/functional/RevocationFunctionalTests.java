@@ -8,16 +8,12 @@ import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.RegisteredCoupon;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.TestPropertySource;
 
-import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.util.HashMap;
-import java.util.Map;
 
 import static eu.h2020.symbiote.security.services.helpers.CouponIssuer.buildCouponJWT;
 import static junit.framework.TestCase.assertTrue;
@@ -31,24 +27,19 @@ public class RevocationFunctionalTests extends
     @Value("${btm.deployment.coupon.validity}")
     private Long couponValidity;
 
-    @Test
-    public void revokeCouponRESTSuccess() throws
-            BTMException,
-            WrongCredentialsException,
-            InvalidArgumentsException,
-            InvalidAlgorithmParameterException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            MalformedJWTException,
-            ValidationException {
+    private String couponString;
 
-        Map<String, String> attributes = new HashMap<>();
+    @Override
+    @Before
+    public void setUp() throws
+            Exception {
+        super.setUp();
         KeyPair keyPair = CryptoHelper.createKeyPair();
-        String couponString = buildCouponJWT(
-                attributes,
+        couponString = buildCouponJWT(
                 Coupon.Type.DISCRETE,
                 100,
                 "coupon",
+                FEDERATION_ID,
                 keyPair.getPublic(),
                 keyPair.getPrivate()
         );
@@ -56,13 +47,23 @@ public class RevocationFunctionalTests extends
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
         registeredCouponRepository.save(registeredCoupon);
         assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
+    }
 
+    @Test
+    public void revokeCouponRESTSuccess() throws
+            BTMException,
+            WrongCredentialsException,
+            InvalidArgumentsException,
+            MalformedJWTException,
+            ValidationException {
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCouponString(couponString);
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
 
         assertTrue(Boolean.parseBoolean(btmClient.revokeCoupon(revocationRequest)));
+        //checking db
+        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
         assertEquals(CouponValidationStatus.REVOKED_COUPON, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
     }
 }

@@ -1,12 +1,8 @@
 package eu.h2020.symbiote.security.utils;
 
 
-import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.communication.payloads.CouponRequest;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,8 +13,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.util.HashMap;
-import java.util.Map;
 
 import static eu.h2020.symbiote.security.services.helpers.CouponIssuer.buildCouponJWT;
 
@@ -31,18 +25,15 @@ import static eu.h2020.symbiote.security.services.helpers.CouponIssuer.buildCoup
  */
 @RestController
 public class DummyPlatformBTM {
-    private static final Log log = LogFactory.getLog(DummyPlatformBTM.class);
     private static final String BTM_CERTIFICATE_ALIAS = "btm";
     private static final String PLATFORM_CERTIFICATE_LOCATION = "./src/test/resources/keystores/dummy_service_btm.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/platform/btm";
     private static final String platformId = "dummy-platform";
     public String receivedCouponIssuer = platformId;
-    public int port;
+    public String federationId = "testFederationId";
     private KeyStore ks;
     private Key key;
-    private Certificate coreCert;
-    private AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
 
     public DummyPlatformBTM() throws NoSuchProviderException, KeyStoreException, IOException, UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -52,14 +43,13 @@ public class DummyPlatformBTM {
     }
 
     @PostMapping(path = PATH + SecurityConstants.BTM_GET_COUPON)
-    public ResponseEntity<String> exchangeCoupon(@RequestBody CouponRequest couponRequest) throws
+    public ResponseEntity<String> getCoupon(@RequestBody CouponRequest couponRequest) throws
             KeyStoreException {
-        Map<String, String> attributes = new HashMap<>();
         String couponString = buildCouponJWT(
-                attributes,
                 couponRequest.getCouponType(),
                 100,
                 receivedCouponIssuer,
+                federationId,
                 ks.getCertificate(BTM_CERTIFICATE_ALIAS).getPublicKey(),
                 (PrivateKey) key
         );

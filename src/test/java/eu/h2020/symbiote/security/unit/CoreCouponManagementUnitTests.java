@@ -24,7 +24,6 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
-import java.util.HashMap;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
@@ -32,10 +31,11 @@ import static org.junit.Assert.*;
 @TestPropertySource("/core.properties")
 public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
 
-    private final String KEY_STORE_NAME = "keystores/dummy_service_btm.p12";
-    private final String KEY_STORE_PATH = "./src/test/resources/keystores/dummy_service_btm.p12";
-    private final String CERTIFICATE_ALIAS = "btm";
-    private final String KEY_STORE_PASSWORD = "1234567";
+    private static final String KEY_STORE_NAME = "keystores/dummy_service_btm.p12";
+    private static final String KEY_STORE_PATH = "./src/test/resources/keystores/dummy_service_btm.p12";
+    private static final String CERTIFICATE_ALIAS = "btm";
+    private static final String KEY_STORE_PASSWORD = "1234567";
+
 
     private KeyPair btmKeyPair;
 
@@ -63,7 +63,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             BTMException,
             IOException {
         //generate coupon using btm cert
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 2, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.DISCRETE,
+                2,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
         String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
@@ -91,7 +97,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             IOException {
         ReflectionTestUtils.setField(coreCouponManagementService, "coreInterfaceAddress", "wrongAddress");
         //generate coupon using btm cert
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 2, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.DISCRETE,
+                2,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
         String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
@@ -127,7 +139,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             NoSuchProviderException {
         KeyPair keyPair = CryptoHelper.createKeyPair();
         //generate coupon using random keys
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 2, "test", keyPair.getPublic(), keyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.DISCRETE,
+                2,
+                "test",
+                FEDERATION_ID,
+                keyPair.getPublic(),
+                keyPair.getPrivate());
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
         String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
@@ -149,7 +167,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             NoSuchProviderException {
         KeyPair keyPair = CryptoHelper.createKeyPair();
         //generate coupon using random keys
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, -5, "test", keyPair.getPublic(), keyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.DISCRETE,
+                -5,
+                "test",
+                FEDERATION_ID,
+                keyPair.getPublic(),
+                keyPair.getPrivate());
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
         String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
@@ -167,7 +191,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             ValidationException,
             MalformedJWTException {
         //generate coupon using random keys
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 2, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.DISCRETE,
+                2,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
         String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
@@ -185,7 +215,12 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             MalformedJWTException,
             ValidationException {
         //generate coupon
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 2, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(Coupon.Type.DISCRETE,
+                2,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         //save coupon in db
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
         registeredCouponRepository.save(registeredCoupon);
@@ -213,7 +248,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             MalformedJWTException,
             ValidationException {
         //generate coupon
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 10000, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.PERIODIC,
+                10000,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         //save coupon in db
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
         registeredCouponRepository.save(registeredCoupon);
@@ -241,7 +282,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             MalformedJWTException,
             ValidationException {
         //generate coupon
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 10000, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.PERIODIC,
+                10000,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         //save coupon in db
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
         registeredCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
@@ -273,7 +320,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             MalformedJWTException,
             ValidationException {
         //generate coupon
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 10, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.DISCRETE,
+                10,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         //save coupon in db
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
         registeredCouponRepository.save(registeredCoupon);
@@ -300,7 +353,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             ValidationException,
             InterruptedException {
         //generate coupon
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 10000, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.PERIODIC,
+                10000,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         //save coupon in db
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
         registeredCouponRepository.save(registeredCoupon);
@@ -328,7 +387,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             ValidationException,
             InterruptedException {
         //generate coupon
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.PERIODIC,
+                1,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         //save coupon in db
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
         registeredCouponRepository.save(registeredCoupon);
@@ -349,7 +414,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             MalformedJWTException,
             ValidationException {
         //generate coupon
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.PERIODIC,
+                1,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         //save coupon in db
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
         registeredCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
@@ -366,7 +437,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
     public void validateCouponFailNotRegistered() throws
             MalformedJWTException {
         //generate coupon
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.DISCRETE,
+                1,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         //ask for validation
         CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
         assertNotNull(couponValidity);
@@ -380,7 +457,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             MalformedJWTException,
             ValidationException {
         //generate coupon
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.DISCRETE,
+                1,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         //save coupon in db as revoked
         RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
         registeredCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
@@ -405,7 +488,13 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             MalformedJWTException,
             ValidationException {
         //generate coupon
-        String couponString = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String couponString = CouponIssuer.buildCouponJWT(
+                Coupon.Type.DISCRETE,
+                1,
+                "test",
+                FEDERATION_ID,
+                btmKeyPair.getPublic(),
+                btmKeyPair.getPrivate());
         //put it in repo with changed couponString
         RegisteredCoupon registeredCoupon1 = new RegisteredCoupon(couponString);
         ReflectionTestUtils.setField(registeredCoupon1, "couponString", "WrongCouponString");
@@ -424,11 +513,11 @@ public class CoreCouponManagementUnitTests extends AbstractCoreBTMTestSuite {
             ValidationException {
         long cleanupTimestamp = 100000;
         //generate some coupons and save them in repo
-        String coupon1 = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
-        String coupon2 = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.DISCRETE, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
-        String coupon3 = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
-        String coupon4 = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
-        String coupon5 = CouponIssuer.buildCouponJWT(new HashMap<>(), Coupon.Type.PERIODIC, 1, "test", btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String coupon1 = CouponIssuer.buildCouponJWT(Coupon.Type.DISCRETE, 1, "test", FEDERATION_ID, btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String coupon2 = CouponIssuer.buildCouponJWT(Coupon.Type.DISCRETE, 1, "test", FEDERATION_ID, btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String coupon3 = CouponIssuer.buildCouponJWT(Coupon.Type.PERIODIC, 1, "test", FEDERATION_ID, btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String coupon4 = CouponIssuer.buildCouponJWT(Coupon.Type.PERIODIC, 1, "test", FEDERATION_ID, btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String coupon5 = CouponIssuer.buildCouponJWT(Coupon.Type.PERIODIC, 1, "test", FEDERATION_ID, btmKeyPair.getPublic(), btmKeyPair.getPrivate());
         RegisteredCoupon registeredCoupon1 = new RegisteredCoupon(coupon1);
         registeredCoupon1.setLastConsumptionTimestamp(cleanupTimestamp - 1);
         registeredCoupon1.setStatus(CouponValidationStatus.CONSUMED_COUPON);

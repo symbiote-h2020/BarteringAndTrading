@@ -60,6 +60,7 @@ public abstract class AbstractCoreBTMTestSuite {
     protected String KEY_STORE_FILE_NAME;
     @Value("${btm.security.CERTIFICATE_ALIAS}")
     protected String CERTIFICATE_ALIAS;
+    protected static final String FEDERATION_ID = "testFederationId";
 
     protected IBTMClient btmClient;
     @LocalServerPort

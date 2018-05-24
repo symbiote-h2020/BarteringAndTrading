@@ -1,6 +1,9 @@
 package eu.h2020.symbiote.security;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.security.communication.BTMClient;
 import eu.h2020.symbiote.security.communication.IBTMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -16,10 +19,14 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.SimpleMessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -63,7 +70,6 @@ public abstract class AbstractBTMTestSuite {
     protected BarteralAccessManagementService barteralAccessManagementService;
 
 
-    protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     protected String coreInterfaceAddress;
@@ -143,5 +149,24 @@ public abstract class AbstractBTMTestSuite {
         // cleanup db
         storedCouponsRepository.deleteAll();
         federationsRepository.deleteAll();
+    }
+
+    @Bean
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setMessageConverter(simpleMessageConverter());
+        return rabbitTemplate;
+    }
+
+    @Bean
+    public SimpleMessageConverter simpleMessageConverter() {
+        return new SimpleMessageConverter();
+    }
+
+    public String convertObjectToJson(Object obj) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, false);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        return mapper.writeValueAsString(obj);
     }
 }
