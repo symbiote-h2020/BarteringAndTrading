@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.security.services;
 
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
@@ -13,6 +15,7 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.BarteralAccessRequest;
 import eu.h2020.symbiote.security.communication.payloads.CouponRequest;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
+import eu.h2020.symbiote.security.repositories.FederationsRepository;
 import eu.h2020.symbiote.security.repositories.StoredCouponsRepository;
 import eu.h2020.symbiote.security.repositories.entities.StoredCoupon;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
@@ -29,6 +32,8 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Spring service used to provide token related functionality of the BAT.
@@ -46,6 +51,7 @@ public class BarteralAccessManagementService {
     private final String coreInterfaceAddress;
     private final String btmCoreAddress;
     private final StoredCouponsRepository storedCouponsRepository;
+    private final FederationsRepository federationsRepository;
     private final CouponIssuer couponIssuer;
     private final ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
@@ -55,12 +61,14 @@ public class BarteralAccessManagementService {
     public BarteralAccessManagementService(CouponIssuer couponIssuer,
                                            @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
                                            StoredCouponsRepository storedCouponsRepository,
+                                           FederationsRepository federationsRepository,
                                            ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
                                            CertificationAuthorityHelper certificationAuthorityHelper) {
         this.coreInterfaceAddress = coreInterfaceAddress;
         this.btmCoreAddress = coreInterfaceAddress.endsWith("/aam") ? coreInterfaceAddress.substring(0, coreInterfaceAddress.length() - 4) + BTM_SUFFIX : coreInterfaceAddress + BTM_SUFFIX;
         this.couponIssuer = couponIssuer;
         this.storedCouponsRepository = storedCouponsRepository;
+        this.federationsRepository = federationsRepository;
         this.componentSecurityHandlerProvider = componentSecurityHandlerProvider;
         this.certificationAuthorityHelper = certificationAuthorityHelper;
     }
@@ -69,7 +77,21 @@ public class BarteralAccessManagementService {
             BTMException,
             AAMException,
             ValidationException,
-            SecurityHandlerException {
+            SecurityHandlerException,
+            InvalidArgumentsException {
+        // check if we are in provided federation
+        if (!federationsRepository.exists(barteralAccessRequest.getFederationId())) {
+            throw new InvalidArgumentsException("Provided federation doesn't exist");
+        }
+        Federation federation = federationsRepository.findOne(barteralAccessRequest.getFederationId());
+        Set<String> federationMembersIds = federation.getMembers().stream()
+                .map(FederationMember::getPlatformId)
+                .collect(Collectors.toSet());
+        if (!federationMembersIds.contains(barteralAccessRequest.getClientPlatform())
+                || !federationMembersIds.contains(certificationAuthorityHelper.getBTMPlatformInstanceIdentifier())) {
+            throw new ValidationException("Local platform or clients platform is not in proveded federation");
+        }
+
         BTMClient coreBtmClient = new BTMClient(btmCoreAddress);
         AAMClient aamClient = new AAMClient(coreInterfaceAddress);
         //get clients btm address

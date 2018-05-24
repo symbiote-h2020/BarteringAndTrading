@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.communication.BTMClient;
 import eu.h2020.symbiote.security.communication.IBTMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.FederationsRepository;
 import eu.h2020.symbiote.security.repositories.StoredCouponsRepository;
 import eu.h2020.symbiote.security.services.BarteralAccessManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
@@ -48,6 +49,8 @@ public abstract class AbstractBTMTestSuite {
     protected String dummyPlatformId = "dummy-platform";
     @Autowired
     protected StoredCouponsRepository storedCouponsRepository;
+    @Autowired
+    protected FederationsRepository federationsRepository;
     @Autowired
     protected CouponIssuer couponIssuer;
     @Autowired
@@ -139,5 +142,6 @@ public abstract class AbstractBTMTestSuite {
         dummyCoreAAMAndBTM.port = port;
         // cleanup db
         storedCouponsRepository.deleteAll();
+        federationsRepository.deleteAll();
     }
 }
