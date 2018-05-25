@@ -56,13 +56,12 @@ public class BarteralAccessManagementController implements IBarteralAccessManage
         }
     }
 
-    //TODO
     @Override
     @ApiOperation(value = "Request for barteral access")
     @ApiResponses({
             @ApiResponse(code = 200, message = "Access granted."),
-            @ApiResponse(code = 400, message = "TODO"),
-            @ApiResponse(code = 500, message = "TODO")})
+            @ApiResponse(code = 400, message = "Access was not granted due to bad request"),
+            @ApiResponse(code = 500, message = "Internal server error.")})
     public ResponseEntity<String> authorizeBarteralAccess(@RequestBody BarteralAccessRequest barteralAccessRequest) {
         try {
             //checking request
@@ -76,11 +75,13 @@ public class BarteralAccessManagementController implements IBarteralAccessManage
             if (barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest)) {
                 return new ResponseEntity<>(HttpStatus.OK);
             }
-            //TODO
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        } catch (InvalidArgumentsException | BTMException | ValidationException | SecurityHandlerException | AAMException e) {
+        } catch (InvalidArgumentsException | ValidationException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(e.getErrorMessage(), HttpStatus.BAD_REQUEST);
+        } catch (SecurityHandlerException | AAMException | BTMException e) {
+            log.error(e.getMessage());
+            return new ResponseEntity<>(e.getErrorMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

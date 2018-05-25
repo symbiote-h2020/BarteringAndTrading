@@ -40,8 +40,10 @@ public class CouponIssuer {
     // BTM configuration
     private final String deploymentId;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
-    @Value("${btm.deployment.coupon.validity}")
-    private long couponValidity;
+    @Value("${btm.deployment.coupon.periodic.validity}")
+    private long periodicCouponValidity;
+    @Value("${btm.deployment.coupon.discrete.validity}")
+    private long discreteCouponValidity;
 
     private StoredCouponsRepository storedCouponsRepository;
 
@@ -86,6 +88,10 @@ public class CouponIssuer {
     public Coupon getCoupon(Coupon.Type couponType, String federationId)
             throws JWTCreationException {
         try {
+            if (couponType.equals(Coupon.Type.NULL))
+                throw new InvalidArgumentsException("Coupon type can not be NULL.");
+            long couponValidity = couponType.equals(Coupon.Type.PERIODIC) ? periodicCouponValidity : discreteCouponValidity;
+
             if (couponValidity < 1) {
                 throw new InvalidArgumentsException("Coupon with such validity would not be valid at all.");
             }

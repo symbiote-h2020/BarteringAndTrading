@@ -75,10 +75,8 @@ public class CoreCouponManagementController implements ICoreCouponManagement {
             switch (couponValidationStatus) {
                 case VALID:
                     return new ResponseEntity<>(HttpStatus.OK);
-                //TODO add more codes.
                 default:
                     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-
             }
         } catch (MalformedJWTException e) {
             log.error("Received coupon was malformed");

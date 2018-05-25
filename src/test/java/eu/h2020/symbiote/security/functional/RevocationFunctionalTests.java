@@ -10,7 +10,6 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.RegisteredCoupon;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.TestPropertySource;
 
 import java.security.KeyPair;
@@ -23,9 +22,6 @@ import static org.junit.Assert.assertNotNull;
 @TestPropertySource("/core.properties")
 public class RevocationFunctionalTests extends
         AbstractCoreBTMTestSuite {
-
-    @Value("${btm.deployment.coupon.validity}")
-    private Long couponValidity;
 
     private String couponString;
 
