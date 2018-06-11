@@ -29,6 +29,9 @@ public class ComponentSecurityHandlerProvider {
                 AAMOwnerUsername,
                 AAMOwnerPassword
         );
+
+        // just to initialize the keystore
+        componentSecurityHandler.generateServiceResponse();
     }
 
     public IComponentSecurityHandler getComponentSecurityHandler() {
@@ -36,6 +39,6 @@ public class ComponentSecurityHandlerProvider {
     }
 
     public HomeCredentials getHomeCredentials() throws SecurityHandlerException {
-        return componentSecurityHandler.getLocalAAMBoundCredentials().homeCredentials;
+        return componentSecurityHandler.getLocalAAMCredentials().homeCredentials;
     }
 }

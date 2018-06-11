@@ -23,15 +23,16 @@ plugins {
     id "java"
     // spring
     id "io.spring.dependency-management" version "1.0.4.RELEASE"
-    id 'org.springframework.boot' version '1.5.11.RELEASE'
+    id 'org.springframework.boot' version '1.5.13.RELEASE'
     // code quality
     id "jacoco"
-    id "org.owasp.dependencycheck" version "3.1.1"
+    id "org.owasp.dependencycheck" version "3.2.0"
     // IDEs
     id "eclipse"
     id "idea"
     // publishing
-    id "com.cinnober.gradle.semver-git" version "2.2.2"
+    id "com.cinnober.gradle.semver-git" version "2.3.1"
+    id "maven-publish"
     // documentation
     id "org.asciidoctor.convert" version "1.5.3"
 }
@@ -41,6 +42,8 @@ apply plugin: 'io.github.swagger2markup'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+
+project.group = 'eu.h2020.symbiote'
 
 // dependencies section
 repositories {
@@ -80,13 +83,15 @@ dependencies {
            3) project dependency requires changes in settings.gradle file in this project
            4) never commit build.gradle which has project dependencies active as it will break CI builds
    */
-    //compile('com.github.symbiote-h2020:SymbIoTeSecurity:[25.3, 25.999]'){ changing = true }
+    //compile('com.github.symbiote-h2020:SymbIoTeSecurity:[25.7, 25.999]'){ changing = true }
     // allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
     //compile('com.github.symbiote-h2020:SymbIoTeSecurity:[25.3, 25.999]:sources'){ changing = true }
-    compile project(':SymbIoTeSecurity')
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:bartening_trading_experimental-SNAPSHOT'){ changing = true }
+    //compile project(':SymbIoTeSecurity')
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.6.1, 5.999]'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.15, 5.999]'){ changing = true }
     //compile project(':SymbIoTeLibraries')
+
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
     compile('org.springframework.boot:spring-boot-starter-amqp')
@@ -97,6 +102,7 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-cache')
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
     compile('org.springframework.boot:spring-boot-starter-web')
+
 
     // JDK 9 runtime fixes
     if(JavaVersion.current() == JavaVersion.VERSION_1_9){
@@ -115,6 +121,10 @@ dependencies {
     testCompile('org.springframework.restdocs:spring-restdocs-mockmvc')
 }
 
+// publication
+bootRepackage {
+    classifier = 'run'
+}
 
 // code quality below
 task generateJavaDocs(type: Javadoc) {
@@ -122,6 +132,38 @@ task generateJavaDocs(type: Javadoc) {
     destinationDir = reporting.file("javadocs")
 }
 
+task javadocJar(type: Jar, dependsOn: generateJavaDocs) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = project.group
+            version = project.version
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+
+            //artifact javadocJar
+
+            artifact(file("$libsDir/$project.name-$project.version-${bootRepackage.classifier}.jar")) {
+                classifier "run"
+            }
+        }
+    }
+}
+
+publishToMavenLocal.dependsOn(bootRepackage)
+
+// code quality below
 // jacoco configuration section
 jacoco {
     toolVersion = "0.7.9"
