@@ -11,6 +11,8 @@ before_install:
 - gradle -b wrapper.gradle wrapper
 - gradle assemble --refresh-dependencies
 sudo: false
+services:
+- rabbitmq
 branches:
   only:
   - staging
