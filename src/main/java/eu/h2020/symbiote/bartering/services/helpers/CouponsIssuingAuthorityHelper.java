@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
@@ -22,28 +21,24 @@ import java.util.List;
 /**
  * Certificate related set of functions.
  *
- * @author Daniele Caldarola (CNIT)
- * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
  */
 @Component
-public class CertificationAuthorityHelper {
+public class CouponsIssuingAuthorityHelper {
     private final X509Certificate btmCertificate;
-    private final X509Certificate rootCertificationAuthorityCertificate;
     private final PrivateKey btmPrivateKey;
     private ApplicationContext ctx;
 
-    public CertificationAuthorityHelper(ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
-                                        ApplicationContext ctx,
-                                        @Value("${btm.platformId}") String platformId) throws
+    public CouponsIssuingAuthorityHelper(ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
+                                         ApplicationContext ctx,
+                                         @Value("${btm.platformId}") String platformId) throws
             SecurityHandlerException,
             CertificateException,
             SecurityMisconfigurationException {
         ECDSAHelper.enableECDSAProvider();
         btmCertificate = componentSecurityHandlerProvider.getHomeCredentials().certificate.getX509();
         btmPrivateKey = componentSecurityHandlerProvider.getHomeCredentials().privateKey;
-        rootCertificationAuthorityCertificate = componentSecurityHandlerProvider.getHomeCredentials().homeAAM.getAamCACertificate().getX509();
         this.ctx = ctx;
         validateSpringProfileDeploymentTypeMatch();
         if (!getBTMPlatformInstanceIdentifier().equals(platformId)) {
@@ -55,8 +50,8 @@ public class CertificationAuthorityHelper {
      * @return resolves the deployment type using the AAM certificate
      */
     public IssuingAuthorityType getDeploymentType() {
-        String btmInstanceIdentifier = getBTMPlatformInstanceIdentifier();
-        if (btmInstanceIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID))
+        String btmPlatformInstanceIdentifier = getBTMPlatformInstanceIdentifier();
+        if (btmPlatformInstanceIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID))
             return IssuingAuthorityType.CORE;
         return IssuingAuthorityType.PLATFORM;
     }
@@ -69,15 +64,15 @@ public class CertificationAuthorityHelper {
             case CORE:
                 if (!activeProfiles.get(0).equals("core")
                         || activeProfiles.size() != 1)
-                    throw new SecurityMisconfigurationException("You are loading Core certificate. In your bootstrap.properties, the following line must be present: 'spring.profiles.active=core'");
+                    throw new SecurityMisconfigurationException("The loaded certificate belongs to a Symbiote Core component. In your bootstrap.properties, the following line must be present: 'spring.profiles.active=core'");
                 break;
             case PLATFORM:
                 if (!activeProfiles.get(0).equals("platform")
                         || activeProfiles.size() != 1)
-                    throw new SecurityMisconfigurationException("You are loading Platform certificate. In your bootstrap.properties, the following line must be present: 'spring.profiles.active=platform'");
+                    throw new SecurityMisconfigurationException("The loaded certificate belongs to a platform component. In your bootstrap.properties, the following line must be present: 'spring.profiles.active=platform'");
                 break;
             case NULL:
-                throw new SecurityMisconfigurationException("Failed to resolve the BTM deploymen type (CORE/PLATFORM) from the given keystore");
+                throw new SecurityMisconfigurationException("Failed to resolve the BTM deployment type (CORE/PLATFORM) from the given keystore");
         }
     }
 
@@ -90,29 +85,6 @@ public class CertificationAuthorityHelper {
 
     public String getBTMPlatformInstanceIdentifier() {
         return getBTMInstanceIdentifier().split(CryptoHelper.FIELDS_DELIMITER)[1];
-    }
-
-    /**
-     * @return Retrieves AAM's certificate in PEM format
-     */
-    public String getBTMCert() throws
-            IOException {
-        return CryptoHelper.convertX509ToPEM(getBTMCertificate());
-    }
-
-    /**
-     * @return Retrieves RootCA's certificate in PEM format
-     */
-    public String getRootCACert() throws
-            IOException {
-        return CryptoHelper.convertX509ToPEM(getRootCACertificate());
-    }
-
-    /**
-     * @return RootCA certificate in X509 format
-     */
-    public X509Certificate getRootCACertificate() {
-        return rootCertificationAuthorityCertificate;
     }
 
     /**

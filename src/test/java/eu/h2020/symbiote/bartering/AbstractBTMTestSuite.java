@@ -7,8 +7,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.bartering.repositories.FederationsRepository;
 import eu.h2020.symbiote.bartering.repositories.StoredCouponsRepository;
 import eu.h2020.symbiote.bartering.services.BarteralAccessManagementService;
-import eu.h2020.symbiote.bartering.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
+import eu.h2020.symbiote.bartering.services.helpers.CouponsIssuingAuthorityHelper;
 import eu.h2020.symbiote.bartering.utils.DummyCoreAAMAndBTM;
 import eu.h2020.symbiote.bartering.utils.DummyPlatformBTM;
 import eu.h2020.symbiote.security.communication.BTMClient;
@@ -61,7 +61,7 @@ public abstract class AbstractBTMTestSuite {
     @Autowired
     protected CouponIssuer couponIssuer;
     @Autowired
-    protected CertificationAuthorityHelper certificationAuthorityHelper;
+    protected CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper;
     @Autowired
     protected DummyCoreAAMAndBTM dummyCoreAAMAndBTM;
     @Autowired

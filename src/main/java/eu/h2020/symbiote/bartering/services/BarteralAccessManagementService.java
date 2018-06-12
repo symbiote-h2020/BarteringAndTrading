@@ -3,9 +3,9 @@ package eu.h2020.symbiote.bartering.services;
 import eu.h2020.symbiote.bartering.repositories.FederationsRepository;
 import eu.h2020.symbiote.bartering.repositories.StoredCouponsRepository;
 import eu.h2020.symbiote.bartering.repositories.entities.StoredCoupon;
-import eu.h2020.symbiote.bartering.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.bartering.services.helpers.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
+import eu.h2020.symbiote.bartering.services.helpers.CouponsIssuingAuthorityHelper;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
@@ -55,7 +55,7 @@ public class BarteralAccessManagementService {
     private final FederationsRepository federationsRepository;
     private final CouponIssuer couponIssuer;
     private final ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
-    private final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper;
 
 
     @Autowired
@@ -64,14 +64,14 @@ public class BarteralAccessManagementService {
                                            StoredCouponsRepository storedCouponsRepository,
                                            FederationsRepository federationsRepository,
                                            ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
-                                           CertificationAuthorityHelper certificationAuthorityHelper) {
+                                           CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper) {
         this.coreInterfaceAddress = coreInterfaceAddress;
         this.btmCoreAddress = coreInterfaceAddress.endsWith("/aam") ? coreInterfaceAddress.substring(0, coreInterfaceAddress.length() - 4) + BTM_SUFFIX : coreInterfaceAddress + BTM_SUFFIX;
         this.couponIssuer = couponIssuer;
         this.storedCouponsRepository = storedCouponsRepository;
         this.federationsRepository = federationsRepository;
         this.componentSecurityHandlerProvider = componentSecurityHandlerProvider;
-        this.certificationAuthorityHelper = certificationAuthorityHelper;
+        this.couponsIssuingAuthorityHelper = couponsIssuingAuthorityHelper;
     }
 
     public boolean authorizeBarteralAccess(BarteralAccessRequest barteralAccessRequest) throws
@@ -89,7 +89,7 @@ public class BarteralAccessManagementService {
                 .map(FederationMember::getPlatformId)
                 .collect(Collectors.toSet());
         if (!federationMembersIds.contains(barteralAccessRequest.getClientPlatform())
-                || !federationMembersIds.contains(certificationAuthorityHelper.getBTMPlatformInstanceIdentifier())) {
+                || !federationMembersIds.contains(couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier())) {
             throw new ValidationException("Local platform or clients platform is not in proveded federation");
         }
 
@@ -107,7 +107,7 @@ public class BarteralAccessManagementService {
         //generate coupon Request
         CouponRequest couponRequest = new CouponRequest(barteralAccessRequest.getCouponType(),
                 barteralAccessRequest.getFederationId(),
-                certificationAuthorityHelper.getBTMPlatformInstanceIdentifier(),
+                couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier(),
                 componentSecurityHandlerProvider.getComponentSecurityHandler().generateSecurityRequestUsingLocalCredentials());
 
         String receivedCouponString = btmClient.getCoupon(couponRequest);
@@ -118,13 +118,13 @@ public class BarteralAccessManagementService {
             return false;
         }
         //if received our coupon but not validated properly
-        if (claims.getIssuer().equals(certificationAuthorityHelper.getBTMPlatformInstanceIdentifier())
+        if (claims.getIssuer().equals(couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier())
                 && !coreBtmClient.consumeCoupon(receivedCouponString)) {
             log.error("Core did not confirmed coupon consumption.");
             return false;
         }
         //if received foreign coupon for bartering
-        if (!claims.getIssuer().equals(certificationAuthorityHelper.getBTMPlatformInstanceIdentifier())) {
+        if (!claims.getIssuer().equals(couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier())) {
             // validate coupon in core
             CouponValidity couponValidity = coreBtmClient.isCouponValid(receivedCouponString);
             // TODO: validate B&T

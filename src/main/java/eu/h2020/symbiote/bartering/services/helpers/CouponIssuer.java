@@ -39,7 +39,7 @@ public class CouponIssuer {
     private static SecureRandom random = new SecureRandom();
     // BTM configuration
     private final String deploymentId;
-    private final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper;
     @Value("${btm.deployment.coupon.periodic.validity}")
     private long periodicCouponValidity;
     @Value("${btm.deployment.coupon.discrete.validity}")
@@ -48,10 +48,10 @@ public class CouponIssuer {
     private StoredCouponsRepository storedCouponsRepository;
 
     @Autowired
-    public CouponIssuer(CertificationAuthorityHelper certificationAuthorityHelper,
+    public CouponIssuer(CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper,
                         StoredCouponsRepository storedCouponsRepository) {
-        this.certificationAuthorityHelper = certificationAuthorityHelper;
-        this.deploymentId = certificationAuthorityHelper.getBTMPlatformInstanceIdentifier();
+        this.couponsIssuingAuthorityHelper = couponsIssuingAuthorityHelper;
+        this.deploymentId = couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier();
         this.storedCouponsRepository = storedCouponsRepository;
     }
 
@@ -100,8 +100,8 @@ public class CouponIssuer {
                     couponValidity,
                     deploymentId,
                     federationId,
-                    certificationAuthorityHelper.getBTMPublicKey(),
-                    certificationAuthorityHelper.getBTMPrivateKey()
+                    couponsIssuingAuthorityHelper.getBTMPublicKey(),
+                    couponsIssuingAuthorityHelper.getBTMPrivateKey()
             ));
             storedCouponsRepository.save(new StoredCoupon(coupon));
             return coupon;

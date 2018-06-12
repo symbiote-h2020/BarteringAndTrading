@@ -3,8 +3,8 @@ package eu.h2020.symbiote.bartering.unit;
 import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
 import eu.h2020.symbiote.bartering.repositories.entities.RegisteredCoupon;
 import eu.h2020.symbiote.bartering.services.RevocationService;
-import eu.h2020.symbiote.bartering.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
+import eu.h2020.symbiote.bartering.services.helpers.CouponsIssuingAuthorityHelper;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
@@ -38,7 +38,7 @@ public class RevocationUnitTests extends
     @Autowired
     private RevocationService revocationService;
     @Autowired
-    private CertificationAuthorityHelper certificationAuthorityHelper;
+    private CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper;
 
 
     @Test
@@ -149,8 +149,8 @@ public class RevocationUnitTests extends
                 1,
                 "Wrong Issuer",
                 FEDERATION_ID,
-                certificationAuthorityHelper.getBTMPublicKey(),
-                certificationAuthorityHelper.getBTMPrivateKey()
+                couponsIssuingAuthorityHelper.getBTMPublicKey(),
+                couponsIssuingAuthorityHelper.getBTMPrivateKey()
         ));
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
