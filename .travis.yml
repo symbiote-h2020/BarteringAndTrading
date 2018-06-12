@@ -4,7 +4,7 @@ git:
 env:
   global:
   - GITHUB_REPO=symbiote-h2020/BarteringAndTrading
-  - secure: //TODO
+  - secure: h/5H/SBhBPm3qWwbCBevWr5SYqzizdjfs8NTW12M4kRWFEjPQCboa1BRvbqWBL/e+dSoupws+Mxr9w5phLutnN6uukYN/KzxSR5MJKuC/9qTzEAkNB1jS7vfbxaUFkdqxt9HiX46O2fGujh1Osn3meeL067W/GztWq20Zi2K5QS+Pc2Hx8RRPuDUF1XemhRZrANdmqd1D2VYBwceDW0tjMizt9pkFWC8P2MNmaE9JfNwIuiFmbrsQ2nXKmhoaeW5tuYVX7j9UM7xOwgXE5U4nJ9PE5E1htIMsL4QkqGFBZEreoKSrVWwiLwTsOwvj8GNuBIeznkCBXu4YaNVf1D3QbM84GIJPijXqOScNp8SUkM85Y1/cGmom4OjHRHaQFext4aKEGzUeRfTQrFg3lo21Tf7g35k/iAa3AscHY6iKblMM3BKGVPL9y653iT/11345tf5b30wxcH2D+QGMSs2qCEcjiUV/NqWit1cg+Kk5pGMHRYSGjeGlB/McHV5qyjo2L5XS1kPjivif0efsAgcGxceIjhvw0pRbteJgCtKdde/tgCDtEHkb+0qJkhMxLr25svG1Q1qOshkQREeP2Fb+0tVEsW4hUl4+ztqWcKxDb07ERyx5/cTVL9LzhlPWVs5q/eA0+DOahLK4yIgBH6fpPMwpa0/vC9WcFpI3U+edu0=
 jdk:
 - oraclejdk8
 before_install:
