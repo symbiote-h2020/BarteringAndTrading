@@ -22,8 +22,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 class AppConfig extends AbstractMongoConfiguration {
 
     private final Object syncObject = new Object();
-    private String databaseName;
-    private String databaseHost;
+    private final String databaseName;
+    private final String databaseHost;
     private MongoClient mongoClient = null;
 
     AppConfig(@Value("${btm.database.name}") String databaseName,

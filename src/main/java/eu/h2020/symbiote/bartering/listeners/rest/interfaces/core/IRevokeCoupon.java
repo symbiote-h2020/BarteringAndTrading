@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.bartering.listeners.rest.interfaces;
+package eu.h2020.symbiote.bartering.listeners.rest.interfaces.core;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
  *
  * @author Jakub Toczek (PSNC)
  */
-public interface IRevokeCredentials {
+public interface IRevokeCoupon {
     /**
      * Exposes a service that allows users to revoke their coupons.
      *

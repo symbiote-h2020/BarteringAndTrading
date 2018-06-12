@@ -9,36 +9,45 @@ import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.springframework.data.annotation.Id;
 
-public class RegisteredCoupon {
+public class IssuedCoupon {
 
     @Id
-    private String id;
-    private String couponString;
-    private String issuer;
-    private long validity;
-    private Coupon.Type type;
-    private long usages;
-    private long firstUseTimestamp;
-    private long lastConsumptionTimestamp;
-    private CouponValidationStatus status;
+    private final String id;
+    private final String couponString;
+    private final String issuer;
+    private final Coupon.Type type;
 
     /**
-     * for mongo usage
+     * can be either number of discrete usagesCounter or a period in seconds designating how long should an activated token be valid for.
      */
-    public RegisteredCoupon() {
+    private final long maximumAllowedUsage;
 
-    }
+    /**
+     * discrete coupon usagesCounter counter
+     */
+    private long usagesCounter;
 
-    public RegisteredCoupon(String couponString) throws
+    /**
+     * required to evaluate a timed coupon
+     */
+    private long firstUseTimestamp;
+    private long lastConsumptionTimestamp;
+
+    /**
+     * last coupon evaluation status
+     */
+    private CouponValidationStatus status;
+
+    public IssuedCoupon(String couponString) throws
             MalformedJWTException,
             ValidationException {
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
         this.id = createIdFromNotification(claims.getJti(), claims.getIss());
         this.couponString = couponString;
         this.issuer = claims.getIss();
-        this.validity = Long.parseLong(claims.getVal());
+        this.maximumAllowedUsage = Long.parseLong(claims.getVal());
         this.type = new Coupon(couponString).getType();
-        this.usages = 0;
+        this.usagesCounter = 0;
         this.firstUseTimestamp = 0;
         this.lastConsumptionTimestamp = 0;
         this.status = CouponValidationStatus.VALID;
@@ -49,20 +58,20 @@ public class RegisteredCoupon {
         return jti + CryptoHelper.FIELDS_DELIMITER + iss;
     }
 
-    public long getValidity() {
-        return validity;
+    public long getMaximumAllowedUsage() {
+        return maximumAllowedUsage;
     }
 
     public Coupon.Type getType() {
         return type;
     }
 
-    public long getUsages() {
-        return usages;
+    public long getUsagesCounter() {
+        return usagesCounter;
     }
 
-    public void setUsages(long usages) {
-        this.usages = usages;
+    public void setUsagesCounter(long usagesCounter) {
+        this.usagesCounter = usagesCounter;
     }
 
     public long getFirstUseTimestamp() {

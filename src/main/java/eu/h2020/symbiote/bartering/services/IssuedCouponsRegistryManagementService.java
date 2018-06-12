@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.bartering.services;
 
-import eu.h2020.symbiote.bartering.repositories.RegisteredCouponRepository;
-import eu.h2020.symbiote.bartering.repositories.entities.RegisteredCoupon;
+import eu.h2020.symbiote.bartering.repositories.IssuedCouponsRegistry;
+import eu.h2020.symbiote.bartering.repositories.entities.IssuedCoupon;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
@@ -29,25 +29,25 @@ import static java.util.stream.Collectors.toSet;
 
 @Profile("core")
 @Service
-public class CoreCouponManagementService {
+public class IssuedCouponsRegistryManagementService {
 
-    private RegisteredCouponRepository registeredCouponRepository;
+    private IssuedCouponsRegistry issuedCouponsRegistry;
     private String coreInterfaceAddress;
 
     @Autowired
-    public CoreCouponManagementService(RegisteredCouponRepository registeredCouponRepository,
-                                       @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
-        this.registeredCouponRepository = registeredCouponRepository;
+    public IssuedCouponsRegistryManagementService(IssuedCouponsRegistry issuedCouponsRegistry,
+                                                  @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
+        this.issuedCouponsRegistry = issuedCouponsRegistry;
         this.coreInterfaceAddress = coreInterfaceAddress;
     }
 
     public int cleanupConsumedCoupons(long timestamp) {
         Set<String> registeredConsumedCouponIdsSet =
-                registeredCouponRepository.findAllByLastConsumptionTimestampBefore(timestamp)
+                issuedCouponsRegistry.findAllByLastConsumptionTimestampBefore(timestamp)
                         .stream()
                         .filter(x -> x.getStatus().equals(CouponValidationStatus.CONSUMED_COUPON))
-                        .map(RegisteredCoupon::getId).collect(toSet());
-        registeredConsumedCouponIdsSet.forEach(x -> registeredCouponRepository.delete(x));
+                        .map(IssuedCoupon::getId).collect(toSet());
+        registeredConsumedCouponIdsSet.forEach(x -> issuedCouponsRegistry.delete(x));
         return registeredConsumedCouponIdsSet.size();
     }
 
@@ -59,20 +59,20 @@ public class CoreCouponManagementService {
             return couponValidity.getStatus();
         }
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
-        String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
-        RegisteredCoupon registeredCoupon = registeredCouponRepository.findOne(registeredCouponId);
+        String registeredCouponId = IssuedCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        IssuedCoupon issuedCoupon = issuedCouponsRegistry.findOne(registeredCouponId);
         // firstUsage update
-        if (registeredCoupon.getFirstUseTimestamp() == 0) {
-            registeredCoupon.setFirstUseTimestamp(actualTimeStamp);
+        if (issuedCoupon.getFirstUseTimestamp() == 0) {
+            issuedCoupon.setFirstUseTimestamp(actualTimeStamp);
         }
-        registeredCoupon.setLastConsumptionTimestamp(actualTimeStamp);
-        registeredCoupon.setUsages(registeredCoupon.getUsages() + 1);
+        issuedCoupon.setLastConsumptionTimestamp(actualTimeStamp);
+        issuedCoupon.setUsagesCounter(issuedCoupon.getUsagesCounter() + 1);
         //update of DISCRETE coupons status
-        if (registeredCoupon.getType().equals(Coupon.Type.DISCRETE) &&
-                registeredCoupon.getUsages() >= registeredCoupon.getValidity()) {
-            registeredCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
+        if (issuedCoupon.getType().equals(Coupon.Type.DISCRETE) &&
+                issuedCoupon.getUsagesCounter() >= issuedCoupon.getMaximumAllowedUsage()) {
+            issuedCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
         }
-        registeredCouponRepository.save(registeredCoupon);
+        issuedCouponsRegistry.save(issuedCoupon);
         return couponValidity.getStatus();
     }
 
@@ -96,55 +96,55 @@ public class CoreCouponManagementService {
             throw new ValidationException("IPK from coupon doesn't match one fetched from core");
         }
         // check if id is not used
-        if (registeredCouponRepository.exists(RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss()))) {
+        if (issuedCouponsRegistry.exists(IssuedCoupon.createIdFromNotification(claims.getJti(), claims.getIss()))) {
             throw new BTMException("Coupon with such id already exists.");
         }
         //save the coupon
-        registeredCouponRepository.save(new RegisteredCoupon(couponString));
+        issuedCouponsRegistry.save(new IssuedCoupon(couponString));
         return true;
     }
 
     public CouponValidity isCouponValid(String couponString) throws MalformedJWTException {
         long actualTimeStamp = new Date().getTime();
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
-        String registeredCouponId = RegisteredCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        String registeredCouponId = IssuedCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //checking, if coupon was registered
-        if (!registeredCouponRepository.exists(registeredCouponId)) {
+        if (!issuedCouponsRegistry.exists(registeredCouponId)) {
             return new CouponValidity(CouponValidationStatus.COUPON_NOT_REGISTERED, Coupon.Type.NULL, 0, 0);
         }
         //checking if coupon is the same as in DB
-        RegisteredCoupon registeredCoupon = registeredCouponRepository.findOne(registeredCouponId);
-        if (!registeredCoupon.getCouponString().equals(couponString)) {
+        IssuedCoupon issuedCoupon = issuedCouponsRegistry.findOne(registeredCouponId);
+        if (!issuedCoupon.getCouponString().equals(couponString)) {
             return new CouponValidity(CouponValidationStatus.DB_MISMATCH, Coupon.Type.NULL, 0, 0);
         }
         //update of the PERIODIC coupon status
-        if (registeredCoupon.getStatus().equals(CouponValidationStatus.VALID) &&
-                registeredCoupon.getType().equals(Coupon.Type.PERIODIC)) {
+        if (issuedCoupon.getStatus().equals(CouponValidationStatus.VALID) &&
+                issuedCoupon.getType().equals(Coupon.Type.PERIODIC)) {
 
-            if (registeredCoupon.getFirstUseTimestamp() != 0 &&
-                    registeredCoupon.getFirstUseTimestamp() + registeredCoupon.getValidity() < actualTimeStamp) {
-                registeredCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
-                registeredCouponRepository.save(registeredCoupon);
+            if (issuedCoupon.getFirstUseTimestamp() != 0 &&
+                    issuedCoupon.getFirstUseTimestamp() + issuedCoupon.getMaximumAllowedUsage() < actualTimeStamp) {
+                issuedCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
+                issuedCouponsRegistry.save(issuedCoupon);
             }
         }
         //checking status
-        switch (registeredCoupon.getStatus()) {
+        switch (issuedCoupon.getStatus()) {
             case VALID: {
-                if (registeredCoupon.getType().equals(Coupon.Type.DISCRETE)) {
+                if (issuedCoupon.getType().equals(Coupon.Type.DISCRETE)) {
                     return new CouponValidity(CouponValidationStatus.VALID,
-                            registeredCoupon.getType(),
-                            registeredCoupon.getValidity() - registeredCoupon.getUsages(),
+                            issuedCoupon.getType(),
+                            issuedCoupon.getMaximumAllowedUsage() - issuedCoupon.getUsagesCounter(),
                             0);
                 }
                 return new CouponValidity(CouponValidationStatus.VALID,
-                        registeredCoupon.getType(),
+                        issuedCoupon.getType(),
                         0,
-                        registeredCoupon.getFirstUseTimestamp() == 0 ?
-                                registeredCoupon.getValidity() :
-                                registeredCoupon.getValidity() - (actualTimeStamp - registeredCoupon.getFirstUseTimestamp()));
+                        issuedCoupon.getFirstUseTimestamp() == 0 ?
+                                issuedCoupon.getMaximumAllowedUsage() :
+                                issuedCoupon.getMaximumAllowedUsage() - (actualTimeStamp - issuedCoupon.getFirstUseTimestamp()));
             }
             default:
-                return new CouponValidity(registeredCoupon.getStatus(), Coupon.Type.NULL, 0, 0);
+                return new CouponValidity(issuedCoupon.getStatus(), Coupon.Type.NULL, 0, 0);
         }
     }
 }

@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.bartering.functional;
 
 import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
-import eu.h2020.symbiote.bartering.repositories.entities.RegisteredCoupon;
+import eu.h2020.symbiote.bartering.repositories.entities.IssuedCoupon;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
@@ -40,9 +40,9 @@ public class RevocationFunctionalTests extends
                 keyPair.getPrivate()
         );
         assertNotNull(couponString);
-        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
-        registeredCouponRepository.save(registeredCoupon);
-        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
+        IssuedCoupon issuedCoupon = new IssuedCoupon(couponString);
+        issuedCouponsRegistry.save(issuedCoupon);
+        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
     }
 
     @Test
@@ -59,7 +59,7 @@ public class RevocationFunctionalTests extends
 
         assertTrue(Boolean.parseBoolean(btmClient.revokeCoupon(revocationRequest)));
         //checking db
-        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
-        assertEquals(CouponValidationStatus.REVOKED_COUPON, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
+        IssuedCoupon issuedCoupon = new IssuedCoupon(couponString);
+        assertEquals(CouponValidationStatus.REVOKED_COUPON, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
     }
 }

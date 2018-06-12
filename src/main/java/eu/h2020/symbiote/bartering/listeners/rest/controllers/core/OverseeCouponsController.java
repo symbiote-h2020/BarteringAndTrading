@@ -1,7 +1,7 @@
-package eu.h2020.symbiote.bartering.listeners.rest.controllers;
+package eu.h2020.symbiote.bartering.listeners.rest.controllers.core;
 
-import eu.h2020.symbiote.bartering.listeners.rest.interfaces.ICoreCouponManagement;
-import eu.h2020.symbiote.bartering.services.CoreCouponManagementService;
+import eu.h2020.symbiote.bartering.listeners.rest.interfaces.core.IOverseeCoupons;
+import eu.h2020.symbiote.bartering.services.IssuedCouponsRegistryManagementService;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
@@ -24,22 +24,22 @@ import java.io.IOException;
 import java.security.cert.CertificateException;
 
 /**
- * Spring controller to handle HTTPS requests associated with coupon management in the CoreBTM.
+ * Spring controller to handle HTTPS requests associated with overseeing symbiote coupons in the CoreBTM.
  *
  * @author Jakub Toczek (PSNC)
  * @author Mikolaj Dobski (PSNC)
  */
 @Profile("core")
 @RestController
-public class CoreCouponManagementController implements ICoreCouponManagement {
+public class OverseeCouponsController implements IOverseeCoupons {
 
 
-    private CoreCouponManagementService coreCouponManagementService;
-    private static Log log = LogFactory.getLog(CoreCouponManagementController.class);
+    private static Log log = LogFactory.getLog(OverseeCouponsController.class);
+    private IssuedCouponsRegistryManagementService couponManagementService;
 
     @Autowired
-    public CoreCouponManagementController(CoreCouponManagementService coreCouponManagementService) {
-        this.coreCouponManagementService = coreCouponManagementService;
+    public OverseeCouponsController(IssuedCouponsRegistryManagementService couponManagementService) {
+        this.couponManagementService = couponManagementService;
     }
 
     @Override
@@ -52,7 +52,7 @@ public class CoreCouponManagementController implements ICoreCouponManagement {
             @RequestBody String couponString) {
 
         try {
-            if (coreCouponManagementService.registerCoupon(couponString)) {
+            if (couponManagementService.registerCoupon(couponString)) {
                 return new ResponseEntity<>(HttpStatus.OK);
             }
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -71,7 +71,7 @@ public class CoreCouponManagementController implements ICoreCouponManagement {
             @ApiResponse(code = 400, message = "Received coupon didn't pass validation")})
     public ResponseEntity<String> consumeCoupon(@RequestBody String couponString) {
         try {
-            CouponValidationStatus couponValidationStatus = coreCouponManagementService.consumeCoupon(couponString);
+            CouponValidationStatus couponValidationStatus = couponManagementService.consumeCoupon(couponString);
             switch (couponValidationStatus) {
                 case VALID:
                     return new ResponseEntity<>(HttpStatus.OK);
@@ -91,7 +91,7 @@ public class CoreCouponManagementController implements ICoreCouponManagement {
             @ApiResponse(code = 400, message = "Received coupon was malformed")})
     public ResponseEntity<CouponValidity> isCouponValid(@RequestBody String couponString) {
         try {
-            CouponValidity couponValidity = coreCouponManagementService.isCouponValid(couponString);
+            CouponValidity couponValidity = couponManagementService.isCouponValid(couponString);
             return new ResponseEntity<>(couponValidity, HttpStatus.OK);
 
         } catch (MalformedJWTException e) {
@@ -104,7 +104,7 @@ public class CoreCouponManagementController implements ICoreCouponManagement {
     @Override
     @ApiOperation(value = "Cleanup all consumed coupons before provided timestamp")
     public ResponseEntity<Integer> cleanupConsumedCoupons(@RequestBody long timestamp) {
-        int removed = coreCouponManagementService.cleanupConsumedCoupons(timestamp);
+        int removed = couponManagementService.cleanupConsumedCoupons(timestamp);
         return new ResponseEntity<>(removed, HttpStatus.OK);
     }
 

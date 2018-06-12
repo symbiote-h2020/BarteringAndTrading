@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.bartering.services.helpers;
 
-import eu.h2020.symbiote.bartering.repositories.StoredCouponsRepository;
-import eu.h2020.symbiote.bartering.repositories.entities.StoredCoupon;
+import eu.h2020.symbiote.bartering.repositories.LocalCouponsRepository;
+import eu.h2020.symbiote.bartering.repositories.entities.LocallyStoredCoupon;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
@@ -38,21 +38,21 @@ public class CouponIssuer {
     private static Log log = LogFactory.getLog(CouponIssuer.class);
     private static SecureRandom random = new SecureRandom();
     // BTM configuration
-    private final String deploymentId;
+    private final String platformIdentifier;
     private final CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper;
     @Value("${btm.deployment.coupon.periodic.validity}")
     private long periodicCouponValidity;
     @Value("${btm.deployment.coupon.discrete.validity}")
     private long discreteCouponValidity;
 
-    private StoredCouponsRepository storedCouponsRepository;
+    private LocalCouponsRepository localCouponsRepository;
 
     @Autowired
     public CouponIssuer(CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper,
-                        StoredCouponsRepository storedCouponsRepository) {
+                        LocalCouponsRepository localCouponsRepository) {
         this.couponsIssuingAuthorityHelper = couponsIssuingAuthorityHelper;
-        this.deploymentId = couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier();
-        this.storedCouponsRepository = storedCouponsRepository;
+        this.platformIdentifier = couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier();
+        this.localCouponsRepository = localCouponsRepository;
     }
 
     public static String buildCouponJWT(Coupon.Type voucherType,
@@ -98,12 +98,12 @@ public class CouponIssuer {
             Coupon coupon = new Coupon(buildCouponJWT(
                     couponType,
                     couponValidity,
-                    deploymentId,
+                    platformIdentifier,
                     federationId,
                     couponsIssuingAuthorityHelper.getBTMPublicKey(),
                     couponsIssuingAuthorityHelper.getBTMPrivateKey()
             ));
-            storedCouponsRepository.save(new StoredCoupon(coupon));
+            localCouponsRepository.save(new LocallyStoredCoupon(coupon));
             return coupon;
         } catch (Exception e) {
             log.error(e);

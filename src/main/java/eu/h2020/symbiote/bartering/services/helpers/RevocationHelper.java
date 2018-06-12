@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.bartering.services.helpers;
 
-import eu.h2020.symbiote.bartering.repositories.RegisteredCouponRepository;
-import eu.h2020.symbiote.bartering.repositories.entities.RegisteredCoupon;
+import eu.h2020.symbiote.bartering.repositories.IssuedCouponsRegistry;
+import eu.h2020.symbiote.bartering.repositories.entities.IssuedCoupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
@@ -25,12 +25,12 @@ import org.springframework.stereotype.Component;
 public class RevocationHelper {
     private static final Logger log = LoggerFactory.getLogger(RevocationHelper.class);
 
-    private final RegisteredCouponRepository registeredCouponRepository;
+    private final IssuedCouponsRegistry issuedCouponsRegistry;
 
 
     @Autowired
-    public RevocationHelper(RegisteredCouponRepository registeredCouponRepository) {
-        this.registeredCouponRepository = registeredCouponRepository;
+    public RevocationHelper(IssuedCouponsRegistry issuedCouponsRegistry) {
+        this.issuedCouponsRegistry = issuedCouponsRegistry;
     }
 
     public boolean revokeCouponByAdmin(String couponString) throws
@@ -40,13 +40,13 @@ public class RevocationHelper {
             throw new ValidationException("Received coupon is not valid.");
         }
         JWTClaims couponClaims = JWTEngine.getClaimsFromJWT(couponString);
-        if (!registeredCouponRepository.exists(RegisteredCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()))) {
+        if (!issuedCouponsRegistry.exists(IssuedCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()))) {
             log.error("Coupon doesn't exist in issued coupons repository!");
             return false;
         }
-        RegisteredCoupon registeredCoupon = registeredCouponRepository.findOne(RegisteredCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()));
-        registeredCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
-        registeredCouponRepository.save(registeredCoupon);
+        IssuedCoupon issuedCoupon = issuedCouponsRegistry.findOne(IssuedCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()));
+        issuedCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
+        issuedCouponsRegistry.save(issuedCoupon);
         log.debug("Coupon: %s was revoked succesfully", couponClaims.getJti());
         return true;
 

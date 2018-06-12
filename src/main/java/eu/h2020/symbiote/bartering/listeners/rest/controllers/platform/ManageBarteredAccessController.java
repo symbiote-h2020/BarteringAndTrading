@@ -1,9 +1,9 @@
-package eu.h2020.symbiote.bartering.listeners.rest.controllers;
+package eu.h2020.symbiote.bartering.listeners.rest.controllers.platform;
 
-import eu.h2020.symbiote.bartering.listeners.rest.interfaces.IBarteralAccessManagement;
-import eu.h2020.symbiote.bartering.services.BarteralAccessManagementService;
+import eu.h2020.symbiote.bartering.listeners.rest.interfaces.platform.IManageBarteredAccess;
+import eu.h2020.symbiote.bartering.services.BarteredAccessManagementService;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.communication.payloads.BarteralAccessRequest;
+import eu.h2020.symbiote.security.communication.payloads.BarteredAccessRequest;
 import eu.h2020.symbiote.security.communication.payloads.CouponRequest;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -20,33 +20,33 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 /**
- * Spring controller to handle HTTPS requests related to the RESTful web services associated with acquiring barteral access and getting coupons
+ * Spring controller to handle HTTP requests related to the RESTful web services associated with acquiring bartered access and getting coupons
  *
  * @author Mikolaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
- * @see BarteralAccessManagementService
+ * @see BarteredAccessManagementService
  */
 @Profile("platform")
 @RestController
-@Api(value = "/docs/barteralAccessManagement", description = "Exposes services responsible for getting access to the bartered resources")
-public class BarteralAccessManagementController implements IBarteralAccessManagement {
+@Api(value = "/docs/barteredAccessManagement", description = "Exposes services responsible for getting access to the bartered resources")
+public class ManageBarteredAccessController implements IManageBarteredAccess {
 
-    private static Log log = LogFactory.getLog(BarteralAccessManagementController.class);
-    private BarteralAccessManagementService barteralAccessManagementService;
+    private static Log log = LogFactory.getLog(ManageBarteredAccessController.class);
+    private BarteredAccessManagementService barteredAccessManagementService;
 
     @Autowired
-    public BarteralAccessManagementController(BarteralAccessManagementService barteralAccessManagementService) {
-        this.barteralAccessManagementService = barteralAccessManagementService;
+    public ManageBarteredAccessController(BarteredAccessManagementService barteredAccessManagementService) {
+        this.barteredAccessManagementService = barteredAccessManagementService;
     }
 
     @Override
-    @ApiOperation(value = "Request coupon from foreign BTM")
+    @ApiOperation(value = "Request coupon from remote federated BTM")
     @ApiResponses({
             @ApiResponse(code = 400, message = "Error validating couponRequest occured"),
             @ApiResponse(code = 500, message = "Internal server error occured")})
     public ResponseEntity<String> getCoupon(@RequestBody CouponRequest couponRequest) {
         try {
-            return new ResponseEntity<>(barteralAccessManagementService.getCoupon(couponRequest), HttpStatus.OK);
+            return new ResponseEntity<>(barteredAccessManagementService.getCoupon(couponRequest), HttpStatus.OK);
         } catch (ValidationException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>("Wrong couponRequest", HttpStatus.BAD_REQUEST);
@@ -57,22 +57,22 @@ public class BarteralAccessManagementController implements IBarteralAccessManage
     }
 
     @Override
-    @ApiOperation(value = "Request for barteral access")
+    @ApiOperation(value = "Request for bartered access")
     @ApiResponses({
             @ApiResponse(code = 200, message = "Access granted."),
             @ApiResponse(code = 400, message = "Access was not granted due to bad request"),
             @ApiResponse(code = 500, message = "Internal server error.")})
-    public ResponseEntity<String> authorizeBarteralAccess(@RequestBody BarteralAccessRequest barteralAccessRequest) {
+    public ResponseEntity<String> authorizeBarteredAccess(@RequestBody BarteredAccessRequest barteredAccessRequest) {
         try {
             //checking request
-            if (barteralAccessRequest.getClientPlatform() == null ||
-                    barteralAccessRequest.getClientPlatform().isEmpty() ||
-                    barteralAccessRequest.getResourceId() == null ||
-                    barteralAccessRequest.getResourceId().isEmpty() ||
-                    barteralAccessRequest.getCouponType() == null) {
-                throw new InvalidArgumentsException("BarteralAccessRequest doesn't contain all required fields.");
+            if (barteredAccessRequest.getClientPlatform() == null ||
+                    barteredAccessRequest.getClientPlatform().isEmpty() ||
+                    barteredAccessRequest.getResourceId() == null ||
+                    barteredAccessRequest.getResourceId().isEmpty() ||
+                    barteredAccessRequest.getCouponType() == null) {
+                throw new InvalidArgumentsException("BarteredAccessRequest doesn't contain all required fields.");
             }
-            if (barteralAccessManagementService.authorizeBarteralAccess(barteralAccessRequest)) {
+            if (barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest)) {
                 return new ResponseEntity<>(HttpStatus.OK);
             }
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

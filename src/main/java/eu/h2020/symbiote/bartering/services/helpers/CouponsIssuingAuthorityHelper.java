@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.bartering.services.helpers;
 
-import eu.h2020.symbiote.bartering.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
@@ -106,5 +105,28 @@ public class CouponsIssuingAuthorityHelper {
      */
     public PrivateKey getBTMPrivateKey() {
         return btmPrivateKey;
+    }
+
+    /**
+     * Used to define the {BarteringTradingManager} deployment type:
+     * Core BTM,
+     * Platform BTM
+     *
+     * @author Mikołaj Dobski (PSNC)
+     * @author Jakub Toczek (PSNC)
+     */
+    public enum IssuingAuthorityType {
+        /**
+         * Core BTM
+         */
+        CORE,
+        /**
+         * Platform BTM
+         */
+        PLATFORM,
+        /**
+         * uninitialised value of this enum
+         */
+        NULL
     }
 }

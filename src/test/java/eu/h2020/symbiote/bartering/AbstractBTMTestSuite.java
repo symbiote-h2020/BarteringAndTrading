@@ -5,8 +5,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.bartering.repositories.FederationsRepository;
-import eu.h2020.symbiote.bartering.repositories.StoredCouponsRepository;
-import eu.h2020.symbiote.bartering.services.BarteralAccessManagementService;
+import eu.h2020.symbiote.bartering.repositories.LocalCouponsRepository;
+import eu.h2020.symbiote.bartering.services.BarteredAccessManagementService;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.bartering.services.helpers.CouponsIssuingAuthorityHelper;
 import eu.h2020.symbiote.bartering.utils.DummyCoreAAMAndBTM;
@@ -55,7 +55,7 @@ public abstract class AbstractBTMTestSuite {
     protected KeyPair userKeyPair;
     protected String dummyPlatformId = "dummy-platform";
     @Autowired
-    protected StoredCouponsRepository storedCouponsRepository;
+    protected LocalCouponsRepository localCouponsRepository;
     @Autowired
     protected FederationsRepository federationsRepository;
     @Autowired
@@ -67,7 +67,7 @@ public abstract class AbstractBTMTestSuite {
     @Autowired
     protected DummyPlatformBTM dummyPlatformBTM;
     @Autowired
-    protected BarteralAccessManagementService barteralAccessManagementService;
+    protected BarteredAccessManagementService barteredAccessManagementService;
 
 
     protected String serverAddress;
@@ -147,7 +147,7 @@ public abstract class AbstractBTMTestSuite {
         userKeyPair = CryptoHelper.createKeyPair();
         dummyCoreAAMAndBTM.port = port;
         // cleanup db
-        storedCouponsRepository.deleteAll();
+        localCouponsRepository.deleteAll();
         federationsRepository.deleteAll();
     }
 

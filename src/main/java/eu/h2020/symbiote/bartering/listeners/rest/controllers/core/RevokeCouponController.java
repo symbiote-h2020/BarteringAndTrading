@@ -1,7 +1,7 @@
-package eu.h2020.symbiote.bartering.listeners.rest.controllers;
+package eu.h2020.symbiote.bartering.listeners.rest.controllers.core;
 
-import eu.h2020.symbiote.bartering.listeners.rest.interfaces.IRevokeCredentials;
-import eu.h2020.symbiote.bartering.services.RevocationService;
+import eu.h2020.symbiote.bartering.listeners.rest.interfaces.core.IRevokeCoupon;
+import eu.h2020.symbiote.bartering.services.CouponRevocationService;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
 import eu.h2020.symbiote.security.communication.payloads.RevocationResponse;
 import io.swagger.annotations.*;
@@ -16,17 +16,17 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * @author Jakub Toczek (PSNC)
  * @author Mikolaj Dobski (PSNC)
- * @see RevocationService
+ * @see CouponRevocationService
  */
 @Profile("core")
 @Api(value = "/docs/revokeCoupons", description = "Exposes services allowing SymbIoTe actors to revoke their coupons")
 @RestController
-public class RevocationController implements IRevokeCredentials {
-    private RevocationService revocationService;
+public class RevokeCouponController implements IRevokeCoupon {
+    private CouponRevocationService couponRevocationService;
 
     @Autowired
-    public RevocationController(RevocationService revocationService) {
-        this.revocationService = revocationService;
+    public RevokeCouponController(CouponRevocationService couponRevocationService) {
+        this.couponRevocationService = couponRevocationService;
     }
 
     @Override
@@ -38,7 +38,7 @@ public class RevocationController implements IRevokeCredentials {
             @RequestBody
             @ApiParam(name = "Revocation Request", value = "Depending on it's fields, coupons can be revoked", required = true)
                     RevocationRequest revocationRequest) {
-        RevocationResponse revocationResponse = revocationService.revoke(revocationRequest);
+        RevocationResponse revocationResponse = couponRevocationService.revoke(revocationRequest);
         return ResponseEntity.status(revocationResponse.getStatus()).body(String.valueOf(revocationResponse.isRevoked()));
     }
 }

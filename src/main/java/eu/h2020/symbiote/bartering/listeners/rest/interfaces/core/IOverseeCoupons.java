@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.bartering.listeners.rest.interfaces;
+package eu.h2020.symbiote.bartering.listeners.rest.interfaces.core;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @Profile("core")
-public interface ICoreCouponManagement {
+public interface IOverseeCoupons {
 
     @PostMapping(value = SecurityConstants.BTM_REGISTER_COUPON)
     ResponseEntity<String> registerCoupon(@RequestBody String couponString);

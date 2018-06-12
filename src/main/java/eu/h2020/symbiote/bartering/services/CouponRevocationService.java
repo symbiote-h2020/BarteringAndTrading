@@ -22,8 +22,8 @@ import org.springframework.stereotype.Service;
  */
 @Profile("core")
 @Service
-public class RevocationService {
-    private static Log log = LogFactory.getLog(RevocationService.class);
+public class CouponRevocationService {
+    private static Log log = LogFactory.getLog(CouponRevocationService.class);
     private final RevocationHelper revocationHelper;
     private final PasswordEncoder passwordEncoder;
     @Value("${btm.deployment.owner.username}")
@@ -32,7 +32,7 @@ public class RevocationService {
     private String BTMOwnerPassword;
 
     @Autowired
-    public RevocationService(RevocationHelper revocationHelper, PasswordEncoder passwordEncoder) {
+    public CouponRevocationService(RevocationHelper revocationHelper, PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
         this.revocationHelper = revocationHelper;
     }

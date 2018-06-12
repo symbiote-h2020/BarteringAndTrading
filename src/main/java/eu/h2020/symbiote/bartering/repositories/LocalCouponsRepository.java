@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.bartering.repositories;
 
-import eu.h2020.symbiote.bartering.repositories.entities.StoredCoupon;
+import eu.h2020.symbiote.bartering.repositories.entities.LocallyStoredCoupon;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import org.springframework.context.annotation.Profile;
@@ -14,9 +14,9 @@ import java.util.HashSet;
  * @author Jakub Toczek (PSNC)
  */
 @Profile("platform")
-public interface StoredCouponsRepository extends MongoRepository<StoredCoupon, String> {
+public interface LocalCouponsRepository extends MongoRepository<LocallyStoredCoupon, String> {
 
-    HashSet<StoredCoupon> findAllByIssuer(String id);
+    HashSet<LocallyStoredCoupon> findAllByIssuer(String id);
 
-    HashSet<StoredCoupon> findAllByIssuerAndTypeAndFederationIdAndStatus(String issuer, Coupon.Type type, String federationId, CouponValidationStatus couponValidationStatus);
+    HashSet<LocallyStoredCoupon> findAllByIssuerAndTypeAndFederationIdAndStatus(String issuer, Coupon.Type type, String federationId, CouponValidationStatus couponValidationStatus);
 }

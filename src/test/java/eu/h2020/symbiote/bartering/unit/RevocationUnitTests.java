@@ -1,8 +1,8 @@
 package eu.h2020.symbiote.bartering.unit;
 
 import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
-import eu.h2020.symbiote.bartering.repositories.entities.RegisteredCoupon;
-import eu.h2020.symbiote.bartering.services.RevocationService;
+import eu.h2020.symbiote.bartering.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.bartering.services.CouponRevocationService;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.bartering.services.helpers.CouponsIssuingAuthorityHelper;
 import eu.h2020.symbiote.security.commons.Coupon;
@@ -36,7 +36,7 @@ public class RevocationUnitTests extends
         AbstractCoreBTMTestSuite {
 
     @Autowired
-    private RevocationService revocationService;
+    private CouponRevocationService couponRevocationService;
     @Autowired
     private CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper;
 
@@ -60,8 +60,8 @@ public class RevocationUnitTests extends
                 keyPair.getPrivate()
         );
         assertNotNull(couponString);
-        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
-        registeredCouponRepository.save(registeredCoupon);
+        IssuedCoupon issuedCoupon = new IssuedCoupon(couponString);
+        issuedCouponsRegistry.save(issuedCoupon);
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
@@ -69,13 +69,13 @@ public class RevocationUnitTests extends
         revocationRequest.setCouponString(couponString);
 
         // verify the user coupon is not yet revoked
-        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
         // revocation
-        RevocationResponse response = revocationService.revoke(revocationRequest);
+        RevocationResponse response = couponRevocationService.revoke(revocationRequest);
 
         // verify the user coupon is revoked
         assertTrue(response.isRevoked());
-        assertEquals(CouponValidationStatus.REVOKED_COUPON, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.REVOKED_COUPON, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
     }
 
     @Test
@@ -96,38 +96,38 @@ public class RevocationUnitTests extends
                 keyPair.getPrivate()
         );
         assertNotNull(couponString);
-        RegisteredCoupon registeredCoupon = new RegisteredCoupon(couponString);
-        registeredCouponRepository.save(registeredCoupon);
+        IssuedCoupon issuedCoupon = new IssuedCoupon(couponString);
+        issuedCouponsRegistry.save(issuedCoupon);
         // verify the user token is not yet revoked
-        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials("wrongUsername", BTMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
-        revocationRequest.setCouponString(registeredCoupon.getCouponString());
+        revocationRequest.setCouponString(issuedCoupon.getCouponString());
         // revocation using wrong admin name
-        RevocationResponse response = revocationService.revoke(revocationRequest);
+        RevocationResponse response = couponRevocationService.revoke(revocationRequest);
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
 
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, "wrong password"));
         // revocation using wrong admin password
-        response = revocationService.revoke(revocationRequest);
+        response = couponRevocationService.revoke(revocationRequest);
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
 
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         // revocation using wrong revocation type
-        response = revocationService.revoke(revocationRequest);
+        response = couponRevocationService.revoke(revocationRequest);
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(CouponValidationStatus.VALID, registeredCouponRepository.findOne(registeredCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
 
     }
 
@@ -138,7 +138,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCouponString("wrongCoupon");
         // revocation using wrong coupon
-        RevocationResponse response = revocationService.revoke(revocationRequest);
+        RevocationResponse response = couponRevocationService.revoke(revocationRequest);
         assertFalse(response.isRevoked());
     }
 
@@ -157,7 +157,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCouponString(coupon.getCoupon());
         // revocation using wrong coupon
-        RevocationResponse response = revocationService.revoke(revocationRequest);
+        RevocationResponse response = couponRevocationService.revoke(revocationRequest);
         assertFalse(response.isRevoked());
     }
 }
