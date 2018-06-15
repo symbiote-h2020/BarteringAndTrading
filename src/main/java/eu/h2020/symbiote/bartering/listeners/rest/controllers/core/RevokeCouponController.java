@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @see CouponRevocationService
  */
 @Profile("core")
-@Api(value = "/docs/revokeCoupons", description = "Exposes services allowing SymbIoTe actors to revoke their coupons")
+@Api(value = "/docs/revokeCoupons", description = "Exposes services allowing SymbIoTe Platforms to revoke their coupons")
 @RestController
 public class RevokeCouponController implements IRevokeCoupon {
     private CouponRevocationService couponRevocationService;
@@ -30,7 +30,7 @@ public class RevokeCouponController implements IRevokeCoupon {
     }
 
     @Override
-    @ApiOperation(value = "Allows users to revoke their coupons")
+    @ApiOperation(value = "Allows Platforms to revoke their coupons")
     @ApiResponses({
             @ApiResponse(code = 400, message = "Request contains invalid arguments"),
             @ApiResponse(code = 401, message = "Incorrect credentials were provided")})

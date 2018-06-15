@@ -5,7 +5,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerExcep
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Certificate related set of functions.
+ * Helper class needed by the BTMs to issue and validate coupons.
  *
  * @author Mikołaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
@@ -27,11 +26,10 @@ import java.util.List;
 public class CouponsIssuingAuthorityHelper {
     private final X509Certificate btmCertificate;
     private final PrivateKey btmPrivateKey;
-    private ApplicationContext ctx;
+    private final ApplicationContext ctx;
 
     public CouponsIssuingAuthorityHelper(ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
-                                         ApplicationContext ctx,
-                                         @Value("${btm.platformId}") String platformId) throws
+                                         ApplicationContext ctx) throws
             SecurityHandlerException,
             CertificateException,
             SecurityMisconfigurationException {
@@ -40,9 +38,6 @@ public class CouponsIssuingAuthorityHelper {
         btmPrivateKey = componentSecurityHandlerProvider.getHomeCredentials().privateKey;
         this.ctx = ctx;
         validateSpringProfileDeploymentTypeMatch();
-        if (!getBTMPlatformInstanceIdentifier().equals(platformId)) {
-            throw new SecurityMisconfigurationException("Platform id does not match this in provided certificate. Check btm.platformId property or check the keystore.");
-        }
     }
 
     /**

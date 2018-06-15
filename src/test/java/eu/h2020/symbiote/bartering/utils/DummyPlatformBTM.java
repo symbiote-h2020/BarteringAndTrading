@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 
-import static eu.h2020.symbiote.bartering.services.helpers.CouponIssuer.buildCouponJWT;
+import static eu.h2020.symbiote.bartering.services.helpers.CouponIssuer.buildCouponJWS;
 
 
 /**
@@ -45,7 +45,7 @@ public class DummyPlatformBTM {
     @PostMapping(path = PATH + SecurityConstants.BTM_GET_COUPON)
     public ResponseEntity<String> getCoupon(@RequestBody CouponRequest couponRequest) throws
             KeyStoreException {
-        String couponString = buildCouponJWT(
+        String couponString = buildCouponJWS(
                 couponRequest.getCouponType(),
                 100,
                 receivedCouponIssuer,

@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.bartering;
 
-import eu.h2020.symbiote.bartering.repositories.IssuedCouponsRegistry;
+import eu.h2020.symbiote.bartering.repositories.GlobalCouponsRegistry;
 import eu.h2020.symbiote.bartering.services.IssuedCouponsRegistryManagementService;
 import eu.h2020.symbiote.bartering.utils.DummyCoreAAMAndBTM;
 import eu.h2020.symbiote.security.communication.BTMClient;
@@ -37,7 +37,7 @@ import java.security.cert.X509Certificate;
 public abstract class AbstractCoreBTMTestSuite {
 
     @Autowired
-    protected IssuedCouponsRegistry issuedCouponsRegistry;
+    protected GlobalCouponsRegistry globalCouponsRegistry;
     @Autowired
     protected DummyCoreAAMAndBTM dummyCoreAAMAndBTM;
     @Autowired
@@ -122,6 +122,6 @@ public abstract class AbstractCoreBTMTestSuite {
         btmClient = new BTMClient(serverAddress);
         dummyCoreAAMAndBTM.port = port;
         // cleanup db
-        issuedCouponsRegistry.deleteAll();
+        globalCouponsRegistry.deleteAll();
     }
 }

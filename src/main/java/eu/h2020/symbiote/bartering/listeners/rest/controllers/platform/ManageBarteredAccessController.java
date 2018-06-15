@@ -42,8 +42,8 @@ public class ManageBarteredAccessController implements IManageBarteredAccess {
     @Override
     @ApiOperation(value = "Request coupon from remote federated BTM")
     @ApiResponses({
-            @ApiResponse(code = 400, message = "Error validating couponRequest occured"),
-            @ApiResponse(code = 500, message = "Internal server error occured")})
+            @ApiResponse(code = 400, message = "Error validating couponRequest occurred"),
+            @ApiResponse(code = 500, message = "Internal server error occurred")})
     public ResponseEntity<String> getCoupon(@RequestBody CouponRequest couponRequest) {
         try {
             return new ResponseEntity<>(barteredAccessManagementService.getCoupon(couponRequest), HttpStatus.OK);
@@ -79,7 +79,7 @@ public class ManageBarteredAccessController implements IManageBarteredAccess {
         } catch (InvalidArgumentsException | ValidationException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(e.getErrorMessage(), HttpStatus.BAD_REQUEST);
-        } catch (SecurityHandlerException | AAMException | BTMException e) {
+        } catch (SecurityHandlerException | BTMException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(e.getErrorMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

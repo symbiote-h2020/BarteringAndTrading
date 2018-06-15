@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.bartering.services.helpers;
 
-import eu.h2020.symbiote.bartering.repositories.IssuedCouponsRegistry;
-import eu.h2020.symbiote.bartering.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.bartering.repositories.GlobalCouponsRegistry;
+import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
@@ -25,29 +25,32 @@ import org.springframework.stereotype.Component;
 public class RevocationHelper {
     private static final Logger log = LoggerFactory.getLogger(RevocationHelper.class);
 
-    private final IssuedCouponsRegistry issuedCouponsRegistry;
+    private final GlobalCouponsRegistry globalCouponsRegistry;
 
 
     @Autowired
-    public RevocationHelper(IssuedCouponsRegistry issuedCouponsRegistry) {
-        this.issuedCouponsRegistry = issuedCouponsRegistry;
+    public RevocationHelper(GlobalCouponsRegistry globalCouponsRegistry) {
+        this.globalCouponsRegistry = globalCouponsRegistry;
     }
 
-    public boolean revokeCouponByAdmin(String couponString) throws
+    /**
+     * TODO do we really need it? Who can revoke coupons... admin? Core Admin? or the Platform Owner can, should he be able to?
+     */
+    public boolean revokeCouponByAdmin(String coupon) throws
             ValidationException,
             MalformedJWTException {
-        if (JWTEngine.validateJWTString(couponString) != ValidationStatus.VALID) {
+        if (JWTEngine.validateJWTString(coupon) != ValidationStatus.VALID) {
             throw new ValidationException("Received coupon is not valid.");
         }
-        JWTClaims couponClaims = JWTEngine.getClaimsFromJWT(couponString);
-        if (!issuedCouponsRegistry.exists(IssuedCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()))) {
-            log.error("Coupon doesn't exist in issued coupons repository!");
+        JWTClaims couponClaims = JWTEngine.getClaimsFromJWT(coupon);
+        if (!globalCouponsRegistry.exists(AccountingCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()))) {
+            log.error("CouponEntity doesn't exist in issued coupons repository!");
             return false;
         }
-        IssuedCoupon issuedCoupon = issuedCouponsRegistry.findOne(IssuedCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()));
-        issuedCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
-        issuedCouponsRegistry.save(issuedCoupon);
-        log.debug("Coupon: %s was revoked succesfully", couponClaims.getJti());
+        AccountingCoupon accountingCoupon = globalCouponsRegistry.findOne(AccountingCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()));
+        accountingCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
+        globalCouponsRegistry.save(accountingCoupon);
+        log.debug("CouponEntity: %s was revoked succesfully", couponClaims.getJti());
         return true;
 
     }

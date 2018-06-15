@@ -1,16 +1,18 @@
 package eu.h2020.symbiote.bartering.unit;
 
 import eu.h2020.symbiote.bartering.AbstractBTMTestSuite;
-import eu.h2020.symbiote.bartering.repositories.entities.LocallyStoredCoupon;
+import eu.h2020.symbiote.bartering.repositories.entities.CouponEntity;
 import eu.h2020.symbiote.bartering.services.helpers.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
-import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.communication.AAMClient;
+import eu.h2020.symbiote.security.communication.BTMClient;
 import eu.h2020.symbiote.security.communication.payloads.BarteredAccessRequest;
 import eu.h2020.symbiote.security.communication.payloads.CouponRequest;
 import eu.h2020.symbiote.security.handler.ComponentSecurityHandler;
+import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -24,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static eu.h2020.symbiote.security.commons.Coupon.Type;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +40,8 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     private String federationId = "testFederationId";
     private Federation federation;
 
+    private ISecurityHandler mockedSecurityHandler;
+
     @Override
     @Before
     public void setUp() throws Exception {
@@ -44,10 +49,16 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         ComponentSecurityHandler mockedComponentSecurityHandler = Mockito.mock(ComponentSecurityHandler.class);
         Set<String> set = new HashSet<>();
         set.add(BTM_AP_NAME);
-        when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(set);
-        when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
-        ReflectionTestUtils.setField(barteredAccessManagementService, "btmCoreAddress", serverAddress + "/test/btm");
-        ReflectionTestUtils.setField(barteredAccessManagementService, "coreInterfaceAddress", serverAddress + "/test/caam");
+        when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any()))
+                .thenReturn(set);
+        when(componentSecurityHandlerProvider.getComponentSecurityHandler())
+                .thenReturn(mockedComponentSecurityHandler);
+        mockedSecurityHandler = Mockito.mock(ISecurityHandler.class);
+        when(componentSecurityHandlerProvider.getComponentSecurityHandler().getSecurityHandler())
+                .thenReturn(mockedSecurityHandler);
+        when(mockedSecurityHandler.getAvailableAAMs())
+                .thenReturn(new AAMClient(serverAddress + "/test/caam").getAvailableAAMs().getAvailableAAMs());
+        ReflectionTestUtils.setField(barteredAccessManagementService, "coreBTMClient", new BTMClient(serverAddress + "/test/btm"));
         dummyCoreAAMAndBTM.registrationStatus = HttpStatus.OK;
         dummyCoreAAMAndBTM.couponValidationStatus = CouponValidationStatus.VALID;
         dummyPlatformBTM.receivedCouponIssuer = dummyPlatformId;
@@ -74,10 +85,10 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             InvalidArgumentsException {
         federationsRepository.save(federation);
         dummyPlatformBTM.receivedCouponIssuer = couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier();
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Coupon.Type.DISCRETE);
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         assertTrue(barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest));
         //no coupon saved in db
-        assertEquals(0, localCouponsRepository.count());
+        assertEquals(0, couponsWallet.count());
     }
 
     @Test
@@ -89,10 +100,10 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             InvalidArgumentsException {
         federationsRepository.save(federation);
         dummyPlatformBTM.receivedCouponIssuer = dummyPlatformId;
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Coupon.Type.DISCRETE);
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         assertTrue(barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest));
         //coupon saved in db
-        assertEquals(1, localCouponsRepository.count());
+        assertEquals(1, couponsWallet.count());
     }
 
     @Test(expected = InvalidArgumentsException.class)
@@ -102,7 +113,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             AAMException,
             ValidationException,
             InvalidArgumentsException {
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Coupon.Type.DISCRETE);
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
 
@@ -116,7 +127,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         //remove local platform from federation
         federation.getMembers().remove(1);
         federationsRepository.save(federation);
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Coupon.Type.DISCRETE);
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
 
@@ -130,7 +141,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         //remove foreign platform from federation
         federation.getMembers().remove(0);
         federationsRepository.save(federation);
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Coupon.Type.DISCRETE);
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
 
@@ -143,8 +154,9 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             InvalidArgumentsException {
 
         federationsRepository.save(federation);
-        ReflectionTestUtils.setField(barteredAccessManagementService, "coreInterfaceAddress", serverAddress + "/wrong_address");
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Coupon.Type.DISCRETE);
+        when(mockedSecurityHandler.getAvailableAAMs())
+                .thenReturn(new AAMClient(serverAddress + "/wrong_address").getAvailableAAMs().getAvailableAAMs());
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
 
@@ -166,7 +178,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         federation.setMembers(federationMembers);
         federationsRepository.save(federation);
 
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest("notRegisteredPlatformId", federationId, "resourceId", Coupon.Type.DISCRETE);
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest("notRegisteredPlatformId", federationId, "resourceId", Type.DISCRETE);
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
 
@@ -179,7 +191,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             InvalidArgumentsException {
         federation.setId("wrongId");
         federationsRepository.save(federation);
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, "wrongId", "resourceId", Coupon.Type.DISCRETE);
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, "wrongId", "resourceId", Type.DISCRETE);
         assertFalse(barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest));
     }
 
@@ -194,7 +206,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         ComponentSecurityHandler mockedComponentSecurityHandler = Mockito.mock(ComponentSecurityHandler.class);
         when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenThrow(new SecurityHandlerException(""));
         when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Coupon.Type.DISCRETE);
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
 
@@ -208,7 +220,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         federationsRepository.save(federation);
         dummyPlatformBTM.receivedCouponIssuer = couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier();
         dummyCoreAAMAndBTM.consumptionStatus = HttpStatus.BAD_REQUEST;
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Coupon.Type.DISCRETE);
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         assertFalse(barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest));
     }
 
@@ -221,7 +233,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             InvalidArgumentsException {
         federationsRepository.save(federation);
         dummyCoreAAMAndBTM.couponValidationStatus = CouponValidationStatus.CONSUMED_COUPON;
-        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Coupon.Type.DISCRETE);
+        BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         assertFalse(barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest));
     }
 
@@ -231,19 +243,19 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             BTMException,
             ValidationException {
         //put proper VALID coupon into repo
-        LocallyStoredCoupon locallyStoredCoupon = new LocallyStoredCoupon(couponIssuer.getCoupon(Coupon.Type.DISCRETE, federationId));
-        localCouponsRepository.save(locallyStoredCoupon);
-        assertEquals(CouponValidationStatus.VALID, locallyStoredCoupon.getStatus());
+        CouponEntity locallyStoredCouponEntity = new CouponEntity(couponIssuer.getCoupon(Type.DISCRETE, federationId));
+        couponsWallet.save(locallyStoredCouponEntity);
+        assertEquals(CouponValidationStatus.VALID, locallyStoredCouponEntity.getStatus());
         //create request (checking SecurityRequest is mocked) using own platformId
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier(), null);
+        CouponRequest couponRequest = new CouponRequest(Type.DISCRETE, federationId, couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier(), null);
         String couponString = barteredAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);
-        Coupon coupon = new Coupon(couponString);
+        eu.h2020.symbiote.security.commons.Coupon coupon = new eu.h2020.symbiote.security.commons.Coupon(couponString);
         //returned coupon should have proper type
-        assertEquals(Coupon.Type.DISCRETE, coupon.getType());
+        assertEquals(Type.DISCRETE, coupon.getType());
         //returned coupon should be different than those stored
-        assertEquals(locallyStoredCoupon.getId(), coupon.getId());
+        assertEquals(locallyStoredCouponEntity.getId(), coupon.getId());
     }
 
     @Test
@@ -252,15 +264,15 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             BTMException,
             JWTCreationException {
         //check if repo is empty
-        assertEquals(0, localCouponsRepository.count());
+        assertEquals(0, couponsWallet.count());
         //create request (checking SecurityRequest is mocked)
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, PLATFORM_ID, null);
+        CouponRequest couponRequest = new CouponRequest(Type.DISCRETE, federationId, PLATFORM_ID, null);
         String couponString = barteredAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);
-        Coupon coupon = new Coupon(couponString);
+        eu.h2020.symbiote.security.commons.Coupon coupon = new eu.h2020.symbiote.security.commons.Coupon(couponString);
         //returned coupon should have proper type
-        assertEquals(Coupon.Type.DISCRETE, coupon.getType());
+        assertEquals(Type.DISCRETE, coupon.getType());
     }
 
     @Test
@@ -271,21 +283,21 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         // change dummy Core BTM to return proper validation status
         dummyCoreAAMAndBTM.couponValidationStatus = CouponValidationStatus.CONSUMED_COUPON;
         //put proper VALID coupon into repo
-        LocallyStoredCoupon locallyStoredCoupon = new LocallyStoredCoupon(couponIssuer.getCoupon(Coupon.Type.DISCRETE, federationId));
-        localCouponsRepository.save(locallyStoredCoupon);
-        assertEquals(CouponValidationStatus.VALID, locallyStoredCoupon.getStatus());
+        CouponEntity locallyStoredCouponEntity = new CouponEntity(couponIssuer.getCoupon(Type.DISCRETE, federationId));
+        couponsWallet.save(locallyStoredCouponEntity);
+        assertEquals(CouponValidationStatus.VALID, locallyStoredCouponEntity.getStatus());
         //create request (checking SecurityRequest is mocked) using own platformId
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier(), null);
+        CouponRequest couponRequest = new CouponRequest(Type.DISCRETE, federationId, couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier(), null);
         String couponString = barteredAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);
-        Coupon coupon = new Coupon(couponString);
+        eu.h2020.symbiote.security.commons.Coupon coupon = new eu.h2020.symbiote.security.commons.Coupon(couponString);
         //returned coupon should have proper type
-        assertEquals(Coupon.Type.DISCRETE, coupon.getType());
+        assertEquals(Type.DISCRETE, coupon.getType());
         //returned coupon should be different than those stored
-        assertNotEquals(locallyStoredCoupon.getId(), coupon.getId());
+        assertNotEquals(locallyStoredCouponEntity.getId(), coupon.getId());
         //stored coupon status should be changed
-        assertEquals(CouponValidationStatus.CONSUMED_COUPON, localCouponsRepository.findOne(locallyStoredCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.CONSUMED_COUPON, couponsWallet.findOne(locallyStoredCouponEntity.getId()).getStatus());
     }
 
     @Test(expected = ValidationException.class)
@@ -298,7 +310,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(new HashSet<>());
         when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
         //create request (checking SecurityRequest is mocked)
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, PLATFORM_ID, null);
+        CouponRequest couponRequest = new CouponRequest(Type.DISCRETE, federationId, PLATFORM_ID, null);
         barteredAccessManagementService.getCoupon(couponRequest);
     }
 
@@ -307,9 +319,9 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             JWTCreationException,
             BTMException,
             ValidationException {
-        ReflectionTestUtils.setField(barteredAccessManagementService, "btmCoreAddress", "Wrong value");
+        ReflectionTestUtils.setField(barteredAccessManagementService, "coreBTMClient", new BTMClient(serverAddress + "/wrong_btm"));
         //create request (checking SecurityRequest is mocked)
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, PLATFORM_ID, null);
+        CouponRequest couponRequest = new CouponRequest(Type.DISCRETE, federationId, PLATFORM_ID, null);
         barteredAccessManagementService.getCoupon(couponRequest);
     }
 
@@ -321,7 +333,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         // change dummy Core BTM to return proper registrationStatus
         dummyCoreAAMAndBTM.registrationStatus = HttpStatus.BAD_REQUEST;
         //create request (checking SecurityRequest is mocked)
-        CouponRequest couponRequest = new CouponRequest(Coupon.Type.DISCRETE, federationId, PLATFORM_ID, null);
+        CouponRequest couponRequest = new CouponRequest(Type.DISCRETE, federationId, PLATFORM_ID, null);
         barteredAccessManagementService.getCoupon(couponRequest);
     }
 

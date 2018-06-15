@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.bartering.unit;
 
 import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
-import eu.h2020.symbiote.bartering.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.CouponRevocationService;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.bartering.services.helpers.CouponsIssuingAuthorityHelper;
@@ -22,7 +22,7 @@ import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
-import static eu.h2020.symbiote.bartering.services.helpers.CouponIssuer.buildCouponJWT;
+import static eu.h2020.symbiote.bartering.services.helpers.CouponIssuer.buildCouponJWS;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
 
@@ -51,7 +51,7 @@ public class RevocationUnitTests extends
 
         // acquiring valid coupon
         KeyPair keyPair = CryptoHelper.createKeyPair();
-        String couponString = buildCouponJWT(
+        String couponString = buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 100,
                 "coupon",
@@ -60,8 +60,8 @@ public class RevocationUnitTests extends
                 keyPair.getPrivate()
         );
         assertNotNull(couponString);
-        IssuedCoupon issuedCoupon = new IssuedCoupon(couponString);
-        issuedCouponsRegistry.save(issuedCoupon);
+        AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
+        globalCouponsRegistry.save(accountingCoupon);
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
@@ -69,13 +69,13 @@ public class RevocationUnitTests extends
         revocationRequest.setCouponString(couponString);
 
         // verify the user coupon is not yet revoked
-        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, globalCouponsRegistry.findOne(accountingCoupon.getId()).getStatus());
         // revocation
         RevocationResponse response = couponRevocationService.revoke(revocationRequest);
 
         // verify the user coupon is revoked
         assertTrue(response.isRevoked());
-        assertEquals(CouponValidationStatus.REVOKED_COUPON, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.REVOKED_COUPON, globalCouponsRegistry.findOne(accountingCoupon.getId()).getStatus());
     }
 
     @Test
@@ -87,7 +87,7 @@ public class RevocationUnitTests extends
             ValidationException {
         // acquiring valid coupon
         KeyPair keyPair = CryptoHelper.createKeyPair();
-        String couponString = buildCouponJWT(
+        String couponString = buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 100,
                 "coupon",
@@ -96,21 +96,21 @@ public class RevocationUnitTests extends
                 keyPair.getPrivate()
         );
         assertNotNull(couponString);
-        IssuedCoupon issuedCoupon = new IssuedCoupon(couponString);
-        issuedCouponsRegistry.save(issuedCoupon);
+        AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
+        globalCouponsRegistry.save(accountingCoupon);
         // verify the user token is not yet revoked
-        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, globalCouponsRegistry.findOne(accountingCoupon.getId()).getStatus());
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials("wrongUsername", BTMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
-        revocationRequest.setCouponString(issuedCoupon.getCouponString());
+        revocationRequest.setCouponString(accountingCoupon.getCouponString());
         // revocation using wrong admin name
         RevocationResponse response = couponRevocationService.revoke(revocationRequest);
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, globalCouponsRegistry.findOne(accountingCoupon.getId()).getStatus());
 
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, "wrong password"));
         // revocation using wrong admin password
@@ -118,7 +118,7 @@ public class RevocationUnitTests extends
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, globalCouponsRegistry.findOne(accountingCoupon.getId()).getStatus());
 
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -127,7 +127,7 @@ public class RevocationUnitTests extends
 
         // verify the user coupon is not revoked
         assertFalse(response.isRevoked());
-        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
+        assertEquals(CouponValidationStatus.VALID, globalCouponsRegistry.findOne(accountingCoupon.getId()).getStatus());
 
     }
 
@@ -144,7 +144,7 @@ public class RevocationUnitTests extends
 
     @Test
     public void revokeCouponFailWrongIssuer() throws ValidationException {
-        Coupon coupon = new Coupon(CouponIssuer.buildCouponJWT(
+        Coupon coupon = new Coupon(CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 1,
                 "Wrong Issuer",

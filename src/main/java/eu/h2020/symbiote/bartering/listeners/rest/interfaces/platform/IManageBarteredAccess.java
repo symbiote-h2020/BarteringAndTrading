@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface IManageBarteredAccess {
     /**
      * @param couponRequest Request containing information about platform, type of requesting coupon and SecurityRequest for BTM authorization
-     * @return Coupon used to access resources offered in SymbIoTe
+     * @return CouponEntity used to access resources offered in SymbIoTe
      */
     @PostMapping(value = SecurityConstants.BTM_GET_COUPON)
     ResponseEntity<String> getCoupon(@RequestBody CouponRequest couponRequest);

@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.bartering.functional;
 
 import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
-import eu.h2020.symbiote.bartering.repositories.entities.IssuedCoupon;
+import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
@@ -14,7 +14,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.security.KeyPair;
 
-import static eu.h2020.symbiote.bartering.services.helpers.CouponIssuer.buildCouponJWT;
+import static eu.h2020.symbiote.bartering.services.helpers.CouponIssuer.buildCouponJWS;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -31,7 +31,7 @@ public class RevocationFunctionalTests extends
             Exception {
         super.setUp();
         KeyPair keyPair = CryptoHelper.createKeyPair();
-        couponString = buildCouponJWT(
+        couponString = buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 100,
                 "coupon",
@@ -40,9 +40,9 @@ public class RevocationFunctionalTests extends
                 keyPair.getPrivate()
         );
         assertNotNull(couponString);
-        IssuedCoupon issuedCoupon = new IssuedCoupon(couponString);
-        issuedCouponsRegistry.save(issuedCoupon);
-        assertEquals(CouponValidationStatus.VALID, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
+        AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
+        globalCouponsRegistry.save(accountingCoupon);
+        assertEquals(CouponValidationStatus.VALID, globalCouponsRegistry.findOne(accountingCoupon.getId()).getStatus());
     }
 
     @Test
@@ -59,7 +59,7 @@ public class RevocationFunctionalTests extends
 
         assertTrue(Boolean.parseBoolean(btmClient.revokeCoupon(revocationRequest)));
         //checking db
-        IssuedCoupon issuedCoupon = new IssuedCoupon(couponString);
-        assertEquals(CouponValidationStatus.REVOKED_COUPON, issuedCouponsRegistry.findOne(issuedCoupon.getId()).getStatus());
+        AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
+        assertEquals(CouponValidationStatus.REVOKED_COUPON, globalCouponsRegistry.findOne(accountingCoupon.getId()).getStatus());
     }
 }

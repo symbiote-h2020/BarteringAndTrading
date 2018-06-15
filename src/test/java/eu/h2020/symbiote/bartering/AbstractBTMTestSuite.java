@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.bartering.repositories.CouponsWallet;
 import eu.h2020.symbiote.bartering.repositories.FederationsRepository;
-import eu.h2020.symbiote.bartering.repositories.LocalCouponsRepository;
 import eu.h2020.symbiote.bartering.services.BarteredAccessManagementService;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.bartering.services.helpers.CouponsIssuingAuthorityHelper;
@@ -55,7 +55,7 @@ public abstract class AbstractBTMTestSuite {
     protected KeyPair userKeyPair;
     protected String dummyPlatformId = "dummy-platform";
     @Autowired
-    protected LocalCouponsRepository localCouponsRepository;
+    protected CouponsWallet couponsWallet;
     @Autowired
     protected FederationsRepository federationsRepository;
     @Autowired
@@ -147,7 +147,7 @@ public abstract class AbstractBTMTestSuite {
         userKeyPair = CryptoHelper.createKeyPair();
         dummyCoreAAMAndBTM.port = port;
         // cleanup db
-        localCouponsRepository.deleteAll();
+        couponsWallet.deleteAll();
         federationsRepository.deleteAll();
     }
 

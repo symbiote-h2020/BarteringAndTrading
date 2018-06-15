@@ -8,8 +8,13 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-public class IssuedCoupon {
+/**
+ * CouponEntity stored in the Core BTM registry along with its consumption details.
+ */
+@Document
+public class AccountingCoupon {
 
     @Id
     private final String id;
@@ -38,7 +43,7 @@ public class IssuedCoupon {
      */
     private CouponValidationStatus status;
 
-    public IssuedCoupon(String couponString) throws
+    public AccountingCoupon(String couponString) throws
             MalformedJWTException,
             ValidationException {
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);

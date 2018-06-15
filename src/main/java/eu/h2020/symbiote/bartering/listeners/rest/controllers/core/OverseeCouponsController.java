@@ -86,7 +86,7 @@ public class OverseeCouponsController implements IOverseeCoupons {
     }
 
     @Override
-    @ApiOperation(value = "Coupon validation in Core BTM")
+    @ApiOperation(value = "CouponEntity validation in Core BTM")
     @ApiResponses({
             @ApiResponse(code = 400, message = "Received coupon was malformed")})
     public ResponseEntity<CouponValidity> isCouponValid(@RequestBody String couponString) {
