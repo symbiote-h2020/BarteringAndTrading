@@ -80,7 +80,6 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void authorizeBarteredAccessSuccessReceivedLocalCoupon() throws
             SecurityHandlerException,
             BTMException,
-            AAMException,
             ValidationException,
             InvalidArgumentsException {
         federationsRepository.save(federation);
@@ -95,7 +94,6 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void authorizeBarteredAccessSuccessReceivedForeignCoupon() throws
             SecurityHandlerException,
             BTMException,
-            AAMException,
             ValidationException,
             InvalidArgumentsException {
         federationsRepository.save(federation);
@@ -110,7 +108,6 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void authorizeBarteredAccessFailNoFederation() throws
             SecurityHandlerException,
             BTMException,
-            AAMException,
             ValidationException,
             InvalidArgumentsException {
         BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
@@ -121,7 +118,6 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void authorizeBarteredAccessFailNoLocalPlatformInFederation() throws
             SecurityHandlerException,
             BTMException,
-            AAMException,
             ValidationException,
             InvalidArgumentsException {
         //remove local platform from federation
@@ -135,7 +131,6 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void authorizeBarteredAccessFailNoForeignPlatformInFederation() throws
             SecurityHandlerException,
             BTMException,
-            AAMException,
             ValidationException,
             InvalidArgumentsException {
         //remove foreign platform from federation
@@ -145,17 +140,15 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
 
-    @Test(expected = AAMException.class)
+    @Test(expected = SecurityHandlerException.class)
     public void authorizeBarteredAccessFailNoCoreConnection() throws
             SecurityHandlerException,
             BTMException,
-            AAMException,
             ValidationException,
             InvalidArgumentsException {
 
         federationsRepository.save(federation);
-        when(mockedSecurityHandler.getAvailableAAMs())
-                .thenReturn(new AAMClient(serverAddress + "/wrong_address").getAvailableAAMs().getAvailableAAMs());
+        when(mockedSecurityHandler.getAvailableAAMs()).thenThrow(new SecurityHandlerException(""));
         BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
@@ -164,7 +157,6 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void authorizeBarteredAccessFailClientsPlatformNotRegistered() throws
             SecurityHandlerException,
             BTMException,
-            AAMException,
             ValidationException,
             InvalidArgumentsException {
         //putting not registered platform into federation
@@ -186,7 +178,6 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void authorizeBarteredAccessFailReturnedCouponWithWrongFederationId() throws
             SecurityHandlerException,
             BTMException,
-            AAMException,
             ValidationException,
             InvalidArgumentsException {
         federation.setId("wrongId");
@@ -200,12 +191,13 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             SecurityHandlerException,
             ValidationException,
             BTMException,
-            AAMException,
             InvalidArgumentsException {
         federationsRepository.save(federation);
         ComponentSecurityHandler mockedComponentSecurityHandler = Mockito.mock(ComponentSecurityHandler.class);
         when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenThrow(new SecurityHandlerException(""));
         when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
+        when(mockedComponentSecurityHandler.getSecurityHandler())
+                .thenReturn(mockedSecurityHandler);
         BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
@@ -214,7 +206,6 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void authorizeBarteredAccessFailReceivedLocalCouponNotValid() throws
             SecurityHandlerException,
             BTMException,
-            AAMException,
             ValidationException,
             InvalidArgumentsException {
         federationsRepository.save(federation);
@@ -228,7 +219,6 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void authorizeBarteredAccessFailReceivedForeignCouponNotValid() throws
             SecurityHandlerException,
             BTMException,
-            AAMException,
             ValidationException,
             InvalidArgumentsException {
         federationsRepository.save(federation);

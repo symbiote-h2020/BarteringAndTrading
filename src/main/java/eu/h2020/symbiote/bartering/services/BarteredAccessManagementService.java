@@ -75,10 +75,10 @@ public class BarteredAccessManagementService {
     }
 
     /**
-     * TODO what does it do?
+     * Check, if user/actor from federated platform can access resource.
      *
-     * @param barteredAccessRequest
-     * @return
+     * @param barteredAccessRequest containing information about user, federation and resource to be accessed
+     * @return true if access should be granted
      * @throws BTMException
      * @throws ValidationException
      * @throws SecurityHandlerException
@@ -154,13 +154,13 @@ public class BarteredAccessManagementService {
     }
 
     /**
-     * TODO what does it do?
+     * Returns coupon to grant local user access to the federated resource in other platform.
      *
-     * @param couponRequest
-     * @return
-     * @throws ValidationException
+     * @param couponRequest containing information about the resource, platform etc.
+     * @return coupon issued by federated platform owning the resource or local coupon for the exchange
+     * @throws ValidationException component requesting coupon is not entitled to get it
      * @throws BTMException
-     * @throws JWTCreationException
+     * @throws JWTCreationException could not create coupon
      */
     public String getCoupon(CouponRequest couponRequest) throws
             ValidationException,
