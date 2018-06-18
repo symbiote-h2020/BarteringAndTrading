@@ -3,11 +3,12 @@ package eu.h2020.symbiote.bartering.unit;
 import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.CouponRevocationService;
+import eu.h2020.symbiote.bartering.services.helpers.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
-import eu.h2020.symbiote.bartering.services.helpers.CouponsIssuingAuthorityHelper;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
@@ -21,6 +22,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
 
 import static eu.h2020.symbiote.bartering.services.helpers.CouponIssuer.buildCouponJWS;
 import static junit.framework.TestCase.assertTrue;
@@ -37,8 +39,9 @@ public class RevocationUnitTests extends
 
     @Autowired
     private CouponRevocationService couponRevocationService;
+
     @Autowired
-    private CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper;
+    private ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
 
 
     @Test
@@ -143,14 +146,15 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokeCouponFailWrongIssuer() throws ValidationException {
+    public void revokeCouponFailWrongIssuer() throws ValidationException, SecurityHandlerException,
+            CertificateException {
         Coupon coupon = new Coupon(CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 1,
                 "Wrong Issuer",
                 FEDERATION_ID,
-                couponsIssuingAuthorityHelper.getBTMPublicKey(),
-                couponsIssuingAuthorityHelper.getBTMPrivateKey()
+                componentSecurityHandlerProvider.getHomeCredentials().certificate.getX509().getPublicKey(),
+                componentSecurityHandlerProvider.getHomeCredentials().privateKey
         ));
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));

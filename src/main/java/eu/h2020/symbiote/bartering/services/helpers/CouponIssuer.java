@@ -38,19 +38,17 @@ public class CouponIssuer {
     private static Log log = LogFactory.getLog(CouponIssuer.class);
     private static SecureRandom random = new SecureRandom();
     // BTM configuration
-    private final String platformIdentifier;
-    private final CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper;
+    private final ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
     private final CouponsWallet couponsWallet;
     private final long periodicCouponValidity;
     private final long discreteCouponValidity;
 
     @Autowired
-    public CouponIssuer(CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper,
+    public CouponIssuer(ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
                         CouponsWallet couponsWallet,
                         @Value("${btm.deployment.couponEntity.periodic.validity}") long periodicCouponValidity,
                         @Value("${btm.deployment.couponEntity.discrete.validity}") long discreteCouponValidity) {
-        this.couponsIssuingAuthorityHelper = couponsIssuingAuthorityHelper;
-        this.platformIdentifier = couponsIssuingAuthorityHelper.getBTMPlatformInstanceIdentifier();
+        this.componentSecurityHandlerProvider = componentSecurityHandlerProvider;
         this.couponsWallet = couponsWallet;
         this.periodicCouponValidity = periodicCouponValidity;
         this.discreteCouponValidity = discreteCouponValidity;
@@ -99,10 +97,10 @@ public class CouponIssuer {
             Coupon coupon = new Coupon(buildCouponJWS(
                     couponType,
                     couponValidity,
-                    platformIdentifier,
+                    componentSecurityHandlerProvider.getPlatformIdentifier(),
                     federationId,
-                    couponsIssuingAuthorityHelper.getBTMPublicKey(),
-                    couponsIssuingAuthorityHelper.getBTMPrivateKey()
+                    componentSecurityHandlerProvider.getHomeCredentials().certificate.getX509().getPublicKey(),
+                    componentSecurityHandlerProvider.getHomeCredentials().privateKey
             ));
             couponsWallet.save(new CouponEntity(coupon));
             return coupon;

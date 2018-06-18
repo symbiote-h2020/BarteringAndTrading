@@ -8,7 +8,6 @@ import eu.h2020.symbiote.bartering.repositories.CouponsWallet;
 import eu.h2020.symbiote.bartering.repositories.FederationsRepository;
 import eu.h2020.symbiote.bartering.services.BarteredAccessManagementService;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
-import eu.h2020.symbiote.bartering.services.helpers.CouponsIssuingAuthorityHelper;
 import eu.h2020.symbiote.bartering.utils.DummyCoreAAMAndBTM;
 import eu.h2020.symbiote.bartering.utils.DummyPlatformBTM;
 import eu.h2020.symbiote.security.communication.BTMClient;
@@ -60,8 +59,6 @@ public abstract class AbstractBTMTestSuite {
     protected FederationsRepository federationsRepository;
     @Autowired
     protected CouponIssuer couponIssuer;
-    @Autowired
-    protected CouponsIssuingAuthorityHelper couponsIssuingAuthorityHelper;
     @Autowired
     protected DummyCoreAAMAndBTM dummyCoreAAMAndBTM;
     @Autowired

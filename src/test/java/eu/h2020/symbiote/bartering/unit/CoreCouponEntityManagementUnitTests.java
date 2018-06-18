@@ -401,7 +401,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         accountingCoupon.setFirstUseTimestamp(new Date().getTime());
         globalCouponsRegistry.save(accountingCoupon);
         //ask for validation
-        Thread.sleep(1);
+        Thread.sleep(100);
         CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(couponString);
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.CONSUMED_COUPON, couponValidity.getStatus());
