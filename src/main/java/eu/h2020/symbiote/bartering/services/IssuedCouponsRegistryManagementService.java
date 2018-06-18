@@ -2,24 +2,22 @@ package eu.h2020.symbiote.bartering.services;
 
 import eu.h2020.symbiote.bartering.repositories.GlobalCouponsRegistry;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
+import eu.h2020.symbiote.bartering.services.helpers.ComponentSecurityHandlerProvider;
+import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
-import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 import java.util.Date;
@@ -27,39 +25,44 @@ import java.util.Set;
 
 import static java.util.stream.Collectors.toSet;
 
+/**
+ * Used to oversee all coupons issued, exchanged and consumed in federations under this Symbiote Core
+ *
+ * @author Mikolaj Dobski (PSNC)
+ * @author Jakub Toczek (PSNC)
+ */
 @Profile("core")
 @Service
 public class IssuedCouponsRegistryManagementService {
 
-    private GlobalCouponsRegistry globalCouponsRegistry;
-    private String coreInterfaceAddress;
+    private final GlobalCouponsRegistry globalCouponsRegistry;
+    private final ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
 
     @Autowired
     public IssuedCouponsRegistryManagementService(GlobalCouponsRegistry globalCouponsRegistry,
-                                                  @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
+                                                  ComponentSecurityHandlerProvider componentSecurityHandlerProvider) {
         this.globalCouponsRegistry = globalCouponsRegistry;
-        this.coreInterfaceAddress = coreInterfaceAddress;
+        this.componentSecurityHandlerProvider = componentSecurityHandlerProvider;
     }
 
     public int cleanupConsumedCoupons(long timestamp) {
-        Set<String> registeredConsumedCouponIdsSet =
+        Set<String> deletedConsumedCouponsIdentifier =
                 globalCouponsRegistry.findAllByLastConsumptionTimestampBefore(timestamp)
                         .stream()
                         .filter(x -> x.getStatus().equals(CouponValidationStatus.CONSUMED_COUPON))
                         .map(AccountingCoupon::getId).collect(toSet());
-        registeredConsumedCouponIdsSet.forEach(x -> globalCouponsRegistry.delete(x));
-        return registeredConsumedCouponIdsSet.size();
+        deletedConsumedCouponsIdentifier.forEach(x -> globalCouponsRegistry.delete(x));
+        return deletedConsumedCouponsIdentifier.size();
     }
 
-    public CouponValidationStatus consumeCoupon(String couponString) throws
-            MalformedJWTException {
+    public CouponValidationStatus consumeCoupon(Coupon coupon) {
         long actualTimeStamp = new Date().getTime();
-        CouponValidity couponValidity = isCouponValid(couponString);
+        CouponValidity couponValidity = isCouponValid(coupon);
         if (!couponValidity.getStatus().equals(CouponValidationStatus.VALID)) {
             return couponValidity.getStatus();
         }
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
-        String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        Claims claims = coupon.getClaims();
+        String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getId(), claims.getIssuer());
         AccountingCoupon accountingCoupon = globalCouponsRegistry.findOne(registeredCouponId);
         // firstUsage update
         if (accountingCoupon.getFirstUseTimestamp() == 0) {
@@ -76,13 +79,14 @@ public class IssuedCouponsRegistryManagementService {
         return couponValidity.getStatus();
     }
 
-    public boolean registerCoupon(String couponString) throws MalformedJWTException, AAMException, IOException, CertificateException, ValidationException, BTMException {
-        //basic coupon validation
-        ValidationStatus validationStatus = JWTEngine.validateJWTString(couponString);
-        if (!validationStatus.equals(ValidationStatus.VALID)) {
-            throw new ValidationException("Signature verification failed.");
-        }
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+    public boolean registerCoupon(Coupon coupon) throws
+            MalformedJWTException,
+            CertificateException,
+            ValidationException,
+            BTMException,
+            SecurityHandlerException {
+
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(coupon.getCoupon());
         //checking if coupon has proper fields
         if (claims.getVal() == null
                 || claims.getVal().isEmpty()
@@ -90,9 +94,8 @@ public class IssuedCouponsRegistryManagementService {
             throw new ValidationException("CouponEntity should contain 'val' claim greater than zero");
         }
         //checking issuer public key in core
-        AAMClient aamClient = new AAMClient(coreInterfaceAddress);
-        String btmCertificate = aamClient.getComponentCertificate("btm", claims.getIss());
-        if (!claims.getIpk().equals(Base64.getEncoder().encodeToString(CryptoHelper.convertPEMToX509(btmCertificate).getPublicKey().getEncoded()))) {
+        Certificate btmCertificate = componentSecurityHandlerProvider.getComponentSecurityHandler().getSecurityHandler().getComponentCertificate("btm", claims.getIss());
+        if (!claims.getIpk().equals(Base64.getEncoder().encodeToString(btmCertificate.getX509().getPublicKey().getEncoded()))) {
             throw new ValidationException("IPK from coupon doesn't match one fetched from core");
         }
         // check if id is not used
@@ -100,21 +103,21 @@ public class IssuedCouponsRegistryManagementService {
             throw new BTMException("CouponEntity with such id already exists.");
         }
         //save the coupon
-        globalCouponsRegistry.save(new AccountingCoupon(couponString));
+        globalCouponsRegistry.save(new AccountingCoupon(coupon.getCoupon()));
         return true;
     }
 
-    public CouponValidity isCouponValid(String couponString) throws MalformedJWTException {
+    public CouponValidity isCouponValid(Coupon coupon) {
         long actualTimeStamp = new Date().getTime();
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
-        String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        Claims claims = coupon.getClaims();
+        String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getId(), claims.getIssuer());
         //checking, if coupon was registered
         if (!globalCouponsRegistry.exists(registeredCouponId)) {
             return new CouponValidity(CouponValidationStatus.COUPON_NOT_REGISTERED, Coupon.Type.NULL, 0, 0);
         }
         //checking if coupon is the same as in DB
         AccountingCoupon accountingCoupon = globalCouponsRegistry.findOne(registeredCouponId);
-        if (!accountingCoupon.getCouponString().equals(couponString)) {
+        if (!accountingCoupon.getCouponString().equals(coupon.getCoupon())) {
             return new CouponValidity(CouponValidationStatus.DB_MISMATCH, Coupon.Type.NULL, 0, 0);
         }
         //update of the PERIODIC coupon status

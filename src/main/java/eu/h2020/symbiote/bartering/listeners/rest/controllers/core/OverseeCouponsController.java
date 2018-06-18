@@ -2,10 +2,11 @@ package eu.h2020.symbiote.bartering.listeners.rest.controllers.core;
 
 import eu.h2020.symbiote.bartering.listeners.rest.interfaces.core.IOverseeCoupons;
 import eu.h2020.symbiote.bartering.services.IssuedCouponsRegistryManagementService;
+import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import io.swagger.annotations.ApiOperation;
@@ -20,7 +21,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
 import java.security.cert.CertificateException;
 
 /**
@@ -52,14 +52,14 @@ public class OverseeCouponsController implements IOverseeCoupons {
             @RequestBody String couponString) {
 
         try {
-            if (couponManagementService.registerCoupon(couponString)) {
+            if (couponManagementService.registerCoupon(new Coupon(couponString))) {
                 return new ResponseEntity<>(HttpStatus.OK);
             }
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (AAMException | MalformedJWTException | ValidationException | BTMException e) {
+        } catch (SecurityHandlerException | MalformedJWTException | ValidationException | BTMException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
-        } catch (IOException | CertificateException e) {
+        } catch (CertificateException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -71,14 +71,14 @@ public class OverseeCouponsController implements IOverseeCoupons {
             @ApiResponse(code = 400, message = "Received coupon didn't pass validation")})
     public ResponseEntity<String> consumeCoupon(@RequestBody String couponString) {
         try {
-            CouponValidationStatus couponValidationStatus = couponManagementService.consumeCoupon(couponString);
+            CouponValidationStatus couponValidationStatus = couponManagementService.consumeCoupon(new Coupon(couponString));
             switch (couponValidationStatus) {
                 case VALID:
                     return new ResponseEntity<>(HttpStatus.OK);
                 default:
                     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
-        } catch (MalformedJWTException e) {
+        } catch (ValidationException e) {
             log.error("Received coupon was malformed");
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -91,10 +91,9 @@ public class OverseeCouponsController implements IOverseeCoupons {
             @ApiResponse(code = 400, message = "Received coupon was malformed")})
     public ResponseEntity<CouponValidity> isCouponValid(@RequestBody String couponString) {
         try {
-            CouponValidity couponValidity = couponManagementService.isCouponValid(couponString);
+            CouponValidity couponValidity = couponManagementService.isCouponValid(new Coupon(couponString));
             return new ResponseEntity<>(couponValidity, HttpStatus.OK);
-
-        } catch (MalformedJWTException e) {
+        } catch (ValidationException e) {
             log.error("Received coupon was malformed");
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }

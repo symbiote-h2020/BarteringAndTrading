@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.bartering.repositories.entities;
 
+import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.PersistenceConstructor;
@@ -17,7 +18,7 @@ public class CouponEntity {
     @Indexed
     private final String issuer;
     @Indexed
-    private final eu.h2020.symbiote.security.commons.Coupon.Type type;
+    private final Coupon.Type type;
     private final String federationId;
 
     private CouponValidationStatus status;
@@ -27,7 +28,7 @@ public class CouponEntity {
                         String couponString,
                         String issuer,
                         String federationId,
-                        eu.h2020.symbiote.security.commons.Coupon.Type type,
+                        Coupon.Type type,
                         CouponValidationStatus status) {
         this.id = id;
         this.couponString = couponString;
@@ -38,7 +39,7 @@ public class CouponEntity {
     }
 
     @PersistenceConstructor
-    public CouponEntity(eu.h2020.symbiote.security.commons.Coupon coupon) {
+    public CouponEntity(Coupon coupon) {
         this(coupon.getId(),
                 coupon.getCoupon(),
                 coupon.getClaims().getIssuer(),
@@ -67,7 +68,7 @@ public class CouponEntity {
         return id;
     }
 
-    public eu.h2020.symbiote.security.commons.Coupon.Type getType() {
+    public Coupon.Type getType() {
         return type;
     }
 

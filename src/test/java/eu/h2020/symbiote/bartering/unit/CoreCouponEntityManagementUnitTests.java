@@ -5,21 +5,16 @@ import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -43,15 +38,9 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
     public void setUp() throws
             Exception {
         super.setUp();
-        ReflectionTestUtils.setField(issuedCouponsRegistryManagementService, "coreInterfaceAddress", serverAddress + "/test/caam");
         PrivateKey privateKey = getPrivateKeyTestFromKeystore(KEY_STORE_NAME, KEY_STORE_PASSWORD, CERTIFICATE_ALIAS);
         X509Certificate certificate = getCertificateFromTestKeystore(KEY_STORE_PATH, KEY_STORE_PASSWORD, CERTIFICATE_ALIAS);
         this.btmKeyPair = new KeyPair(certificate.getPublicKey(), privateKey);
-    }
-
-    @After
-    public void after() {
-        ReflectionTestUtils.setField(issuedCouponsRegistryManagementService, "coreInterfaceAddress", serverAddress);
     }
 
     @Test
@@ -59,9 +48,8 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
             MalformedJWTException,
             ValidationException,
             CertificateException,
-            AAMException,
             BTMException,
-            IOException {
+            SecurityHandlerException {
         //generate coupon using btm cert
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
@@ -75,7 +63,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
         //register coupon
-        assertTrue(issuedCouponsRegistryManagementService.registerCoupon(couponString));
+        assertTrue(issuedCouponsRegistryManagementService.registerCoupon(new Coupon(couponString)));
         //check the DB
         assertTrue(globalCouponsRegistry.exists(registeredCouponId));
         AccountingCoupon accountingCoupon = globalCouponsRegistry.findOne(registeredCouponId);
@@ -92,9 +80,8 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
             MalformedJWTException,
             ValidationException,
             CertificateException,
-            AAMException,
             BTMException,
-            IOException {
+            SecurityHandlerException {
         ReflectionTestUtils.setField(issuedCouponsRegistryManagementService, "coreInterfaceAddress", "wrongAddress");
         //generate coupon using btm cert
         String couponString = CouponIssuer.buildCouponJWS(
@@ -109,34 +96,31 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
         //register coupon
-        issuedCouponsRegistryManagementService.registerCoupon(couponString);
+        issuedCouponsRegistryManagementService.registerCoupon(new Coupon(couponString));
     }
 
     @Test(expected = ValidationException.class)
     public void registerCouponFailMalformedCoupon() throws
             CertificateException,
-            AAMException,
             BTMException,
-            IOException,
             ValidationException,
-            MalformedJWTException {
+            MalformedJWTException, SecurityHandlerException {
         //generate coupon using btm cert
         String couponString = "malformedCoupon";
         //register coupon
-        issuedCouponsRegistryManagementService.registerCoupon(couponString);
+        issuedCouponsRegistryManagementService.registerCoupon(new Coupon(couponString));
     }
 
     @Test(expected = ValidationException.class)
     public void registerCouponFailMismatchOfComponentKeys() throws
             CertificateException,
-            AAMException,
             BTMException,
-            IOException,
             ValidationException,
             MalformedJWTException,
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
-            NoSuchProviderException {
+            NoSuchProviderException,
+            SecurityHandlerException {
         KeyPair keyPair = CryptoHelper.createKeyPair();
         //generate coupon using random keys
         String couponString = CouponIssuer.buildCouponJWS(
@@ -151,20 +135,19 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
         //register coupon
-        issuedCouponsRegistryManagementService.registerCoupon(couponString);
+        issuedCouponsRegistryManagementService.registerCoupon(new Coupon(couponString));
     }
 
     @Test(expected = ValidationException.class)
     public void registerCouponFailWrongValValue() throws
             CertificateException,
-            AAMException,
             BTMException,
-            IOException,
             ValidationException,
             MalformedJWTException,
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
-            NoSuchProviderException {
+            NoSuchProviderException,
+            SecurityHandlerException {
         KeyPair keyPair = CryptoHelper.createKeyPair();
         //generate coupon using random keys
         String couponString = CouponIssuer.buildCouponJWS(
@@ -179,17 +162,16 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
         //register coupon
-        issuedCouponsRegistryManagementService.registerCoupon(couponString);
+        issuedCouponsRegistryManagementService.registerCoupon(new Coupon(couponString));
     }
 
     @Test(expected = BTMException.class)
     public void registerCouponFailAlreadyRegistered() throws
             CertificateException,
-            AAMException,
             BTMException,
-            IOException,
             ValidationException,
-            MalformedJWTException {
+            MalformedJWTException,
+            SecurityHandlerException {
         //generate coupon using random keys
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
@@ -203,11 +185,11 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
         //register coupon
-        assertTrue(issuedCouponsRegistryManagementService.registerCoupon(couponString));
+        assertTrue(issuedCouponsRegistryManagementService.registerCoupon(new Coupon(couponString)));
         //check if coupon in db
         assertTrue(globalCouponsRegistry.exists(registeredCouponId));
         //register coupon
-        issuedCouponsRegistryManagementService.registerCoupon(couponString);
+        issuedCouponsRegistryManagementService.registerCoupon(new Coupon(couponString));
     }
 
     @Test
@@ -225,7 +207,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         globalCouponsRegistry.save(accountingCoupon);
         //consume CouponEntity
-        CouponValidationStatus couponValidationStatus = issuedCouponsRegistryManagementService.consumeCoupon(couponString);
+        CouponValidationStatus couponValidationStatus = issuedCouponsRegistryManagementService.consumeCoupon(new Coupon(couponString));
         assertEquals(CouponValidationStatus.VALID, couponValidationStatus);
         //check registered coupon in db
         accountingCoupon = globalCouponsRegistry.findOne(accountingCoupon.getId());
@@ -234,7 +216,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         assertNotEquals(0, accountingCoupon.getLastConsumptionTimestamp());
         assertEquals(CouponValidationStatus.VALID, accountingCoupon.getStatus());
         //consume it again to change its status
-        couponValidationStatus = issuedCouponsRegistryManagementService.consumeCoupon(couponString);
+        couponValidationStatus = issuedCouponsRegistryManagementService.consumeCoupon(new Coupon(couponString));
         assertEquals(CouponValidationStatus.VALID, couponValidationStatus);
         //check registered coupon in db
         accountingCoupon = globalCouponsRegistry.findOne(accountingCoupon.getId());
@@ -259,7 +241,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         globalCouponsRegistry.save(accountingCoupon);
         //consume CouponEntity
-        CouponValidationStatus couponValidationStatus = issuedCouponsRegistryManagementService.consumeCoupon(couponString);
+        CouponValidationStatus couponValidationStatus = issuedCouponsRegistryManagementService.consumeCoupon(new Coupon(couponString));
         assertEquals(CouponValidationStatus.VALID, couponValidationStatus);
         //check registered coupon in db
         accountingCoupon = globalCouponsRegistry.findOne(accountingCoupon.getId());
@@ -268,7 +250,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         assertNotEquals(0, accountingCoupon.getLastConsumptionTimestamp());
         assertEquals(CouponValidationStatus.VALID, accountingCoupon.getStatus());
         //consume it again
-        couponValidationStatus = issuedCouponsRegistryManagementService.consumeCoupon(couponString);
+        couponValidationStatus = issuedCouponsRegistryManagementService.consumeCoupon(new Coupon(couponString));
         assertEquals(CouponValidationStatus.VALID, couponValidationStatus);
         //check registered coupon in db
         accountingCoupon = globalCouponsRegistry.findOne(accountingCoupon.getId());
@@ -294,7 +276,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         accountingCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
         globalCouponsRegistry.save(accountingCoupon);
         //consume CouponEntity
-        CouponValidationStatus couponValidationStatus = issuedCouponsRegistryManagementService.consumeCoupon(couponString);
+        CouponValidationStatus couponValidationStatus = issuedCouponsRegistryManagementService.consumeCoupon(new Coupon(couponString));
         assertEquals(CouponValidationStatus.CONSUMED_COUPON, couponValidationStatus);
         //check if coupon did not changed in db
         AccountingCoupon accountingCouponDB = globalCouponsRegistry.findOne(accountingCoupon.getId());
@@ -310,9 +292,9 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
 
     @Test(expected = MalformedJWTException.class)
     public void consumeCouponFailMalformedCoupon() throws
-            MalformedJWTException {
+            MalformedJWTException, ValidationException {
         String couponString = "MalformedCoupon";
-        issuedCouponsRegistryManagementService.consumeCoupon(couponString);
+        issuedCouponsRegistryManagementService.consumeCoupon(new Coupon(couponString));
     }
 
     @Test
@@ -331,7 +313,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         globalCouponsRegistry.save(accountingCoupon);
         //ask for validation
-        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(couponString);
+        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.VALID, couponValidity.getStatus());
         assertEquals(10, couponValidity.getRemainingUsages());
@@ -340,7 +322,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         accountingCoupon.setUsagesCounter(1);
         globalCouponsRegistry.save(accountingCoupon);
         //ask for validation
-        couponValidity = issuedCouponsRegistryManagementService.isCouponValid(couponString);
+        couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.VALID, couponValidity.getStatus());
         assertEquals(9, couponValidity.getRemainingUsages());
@@ -364,7 +346,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         globalCouponsRegistry.save(accountingCoupon);
         //ask for validation
-        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(couponString);
+        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.VALID, couponValidity.getStatus());
         assertEquals(0, couponValidity.getRemainingUsages());
@@ -374,7 +356,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         globalCouponsRegistry.save(accountingCoupon);
         //ask for validation
         Thread.sleep(1);
-        couponValidity = issuedCouponsRegistryManagementService.isCouponValid(couponString);
+        couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.VALID, couponValidity.getStatus());
         assertEquals(0, couponValidity.getRemainingUsages());
@@ -402,7 +384,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         globalCouponsRegistry.save(accountingCoupon);
         //ask for validation
         Thread.sleep(100);
-        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(couponString);
+        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.CONSUMED_COUPON, couponValidity.getStatus());
         assertEquals(0, couponValidity.getRemainingUsages());
@@ -426,7 +408,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         accountingCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
         globalCouponsRegistry.save(accountingCoupon);
         //ask for validation
-        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(couponString);
+        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.CONSUMED_COUPON, couponValidity.getStatus());
         assertEquals(0, couponValidity.getRemainingUsages());
@@ -435,7 +417,8 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
 
     @Test
     public void validateCouponFailNotRegistered() throws
-            MalformedJWTException {
+            MalformedJWTException,
+            ValidationException {
         //generate coupon
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
@@ -445,7 +428,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 btmKeyPair.getPublic(),
                 btmKeyPair.getPrivate());
         //ask for validation
-        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(couponString);
+        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.COUPON_NOT_REGISTERED, couponValidity.getStatus());
         assertEquals(0, couponValidity.getRemainingUsages());
@@ -469,7 +452,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         accountingCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
         globalCouponsRegistry.save(accountingCoupon);
         //ask for validation
-        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(couponString);
+        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.REVOKED_COUPON, couponValidity.getStatus());
         assertEquals(0, couponValidity.getRemainingUsages());
@@ -478,9 +461,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
 
     @Test(expected = MalformedJWTException.class)
     public void validateCouponFailMalformedCoupon() throws
-            MalformedJWTException {
+            MalformedJWTException,
+            ValidationException {
         String couponString = "MalformedCoupon";
-        issuedCouponsRegistryManagementService.isCouponValid(couponString);
+        issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
     }
 
     @Test
@@ -510,7 +494,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         ReflectionTestUtils.setField(accountingCoupon1, "couponString", forgedCouponString);
         globalCouponsRegistry.save(accountingCoupon1);
         //ask for validation
-        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(couponString);
+        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.DB_MISMATCH, couponValidity.getStatus());
         assertEquals(0, couponValidity.getRemainingUsages());
