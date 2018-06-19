@@ -1,46 +1,66 @@
 package eu.h2020.symbiote.bartering.unit;
 
 import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
+import eu.h2020.symbiote.bartering.TestConfig;
+import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 
+import static eu.h2020.symbiote.bartering.TestConfig.NO_CONNECTION_ISSUER_NAME;
+import static eu.h2020.symbiote.bartering.TestConfig.SERVICE_ISSUER_NAME;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.doReturn;
 
 @TestPropertySource("/core.properties")
 public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuite {
 
-    private static final String KEY_STORE_NAME = "keystores/dummy_service_btm.p12";
-    private static final String KEY_STORE_PATH = "./src/test/resources/keystores/dummy_service_btm.p12";
+
     private static final String CERTIFICATE_ALIAS = "btm";
     private static final String KEY_STORE_PASSWORD = "1234567";
 
+    private IComponentSecurityHandler mockedComponentSecurityHandler;
+    private ISecurityHandler mockedSecurityHandler;
 
-    private KeyPair btmKeyPair;
+    @Autowired
+    private ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
+
+    private KeyPair serviceBtmKeyPair;
 
     @Before
     public void setUp() throws
             Exception {
         super.setUp();
-        PrivateKey privateKey = getPrivateKeyTestFromKeystore(KEY_STORE_NAME, KEY_STORE_PASSWORD, CERTIFICATE_ALIAS);
-        X509Certificate certificate = getCertificateFromTestKeystore(KEY_STORE_PATH, KEY_STORE_PASSWORD, CERTIFICATE_ALIAS);
-        this.btmKeyPair = new KeyPair(certificate.getPublicKey(), privateKey);
+        PrivateKey privateKey = getPrivateKeyTestFromKeystore(TestConfig.SERVICE_KEY_STORE_NAME, KEY_STORE_PASSWORD, CERTIFICATE_ALIAS);
+        X509Certificate certificate = getCertificateFromTestKeystore(TestConfig.SERVICE_KEY_STORE_PATH, KEY_STORE_PASSWORD, CERTIFICATE_ALIAS);
+        this.serviceBtmKeyPair = new KeyPair(certificate.getPublicKey(), privateKey);
+
+        mockedComponentSecurityHandler = componentSecurityHandlerProvider.getComponentSecurityHandler();
+        mockedSecurityHandler = mockedComponentSecurityHandler.getSecurityHandler();
+        doReturn(new AAMClient(serverAddress + "/test/caam").getAvailableAAMs().getAvailableAAMs())
+                .when(mockedSecurityHandler).getAvailableAAMs();
     }
 
     @Test
@@ -54,10 +74,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 2,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
@@ -75,22 +95,21 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         assertEquals(CouponValidationStatus.VALID, accountingCoupon.getStatus());
     }
 
-    @Test(expected = AAMException.class)
+    @Test(expected = SecurityHandlerException.class)
     public void registerCouponFailCoreAAMNotAvailable() throws
             MalformedJWTException,
             ValidationException,
             CertificateException,
             BTMException,
             SecurityHandlerException {
-        ReflectionTestUtils.setField(issuedCouponsRegistryManagementService, "coreInterfaceAddress", "wrongAddress");
         //generate coupon using btm cert
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 2,
-                "test",
+                NO_CONNECTION_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
@@ -126,7 +145,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 2,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
                 keyPair.getPublic(),
                 keyPair.getPrivate());
@@ -153,7 +172,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 -5,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
                 keyPair.getPublic(),
                 keyPair.getPrivate());
@@ -176,10 +195,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 2,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
@@ -199,10 +218,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         //generate coupon
         String couponString = CouponIssuer.buildCouponJWS(Coupon.Type.DISCRETE,
                 2,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         //save coupon in db
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         globalCouponsRegistry.save(accountingCoupon);
@@ -233,10 +252,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.PERIODIC,
                 10000,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         //save coupon in db
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         globalCouponsRegistry.save(accountingCoupon);
@@ -267,10 +286,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.PERIODIC,
                 10000,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         //save coupon in db
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         accountingCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
@@ -290,13 +309,6 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         assertEquals(accountingCoupon.getIssuer(), accountingCouponDB.getIssuer());
     }
 
-    @Test(expected = MalformedJWTException.class)
-    public void consumeCouponFailMalformedCoupon() throws
-            MalformedJWTException, ValidationException {
-        String couponString = "MalformedCoupon";
-        issuedCouponsRegistryManagementService.consumeCoupon(new Coupon(couponString));
-    }
-
     @Test
     public void validateDiscreteCouponSuccess() throws
             MalformedJWTException,
@@ -305,10 +317,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 10,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         //save coupon in db
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         globalCouponsRegistry.save(accountingCoupon);
@@ -338,10 +350,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.PERIODIC,
                 10000,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         //save coupon in db
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         globalCouponsRegistry.save(accountingCoupon);
@@ -355,7 +367,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         accountingCoupon.setFirstUseTimestamp(new Date().getTime());
         globalCouponsRegistry.save(accountingCoupon);
         //ask for validation
-        Thread.sleep(1);
+        Thread.sleep(100);
         couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
         assertEquals(CouponValidationStatus.VALID, couponValidity.getStatus());
@@ -372,10 +384,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.PERIODIC,
                 1,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         //save coupon in db
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         globalCouponsRegistry.save(accountingCoupon);
@@ -399,10 +411,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.PERIODIC,
                 1,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         //save coupon in db
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         accountingCoupon.setStatus(CouponValidationStatus.CONSUMED_COUPON);
@@ -417,16 +429,15 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
 
     @Test
     public void validateCouponFailNotRegistered() throws
-            MalformedJWTException,
             ValidationException {
         //generate coupon
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 1,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         //ask for validation
         CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
         assertNotNull(couponValidity);
@@ -443,10 +454,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         String couponString = CouponIssuer.buildCouponJWS(
                 Coupon.Type.DISCRETE,
                 1,
-                "test",
+                SERVICE_ISSUER_NAME,
                 FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
         //save coupon in db as revoked
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         accountingCoupon.setStatus(CouponValidationStatus.REVOKED_COUPON);
@@ -459,59 +470,17 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         assertEquals(0, couponValidity.getRemainingTime());
     }
 
-    @Test(expected = MalformedJWTException.class)
-    public void validateCouponFailMalformedCoupon() throws
-            MalformedJWTException,
-            ValidationException {
-        String couponString = "MalformedCoupon";
-        issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
-    }
-
-    @Test
-    public void validateCouponFailCouponMismatch() throws
-            MalformedJWTException,
-            ValidationException {
-        //generate coupon
-        String couponString = CouponIssuer.buildCouponJWS(
-                Coupon.Type.DISCRETE,
-                1,
-                "test",
-                FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
-
-        String forgedCouponString = CouponIssuer.buildCouponJWS(
-                Coupon.Type.DISCRETE,
-                1,
-                "forgedIssuer",
-                FEDERATION_ID,
-                btmKeyPair.getPublic(),
-                btmKeyPair.getPrivate());
-
-
-        //put it in repo with changed couponString
-        AccountingCoupon accountingCoupon1 = new AccountingCoupon(couponString);
-        ReflectionTestUtils.setField(accountingCoupon1, "couponString", forgedCouponString);
-        globalCouponsRegistry.save(accountingCoupon1);
-        //ask for validation
-        CouponValidity couponValidity = issuedCouponsRegistryManagementService.isCouponValid(new Coupon(couponString));
-        assertNotNull(couponValidity);
-        assertEquals(CouponValidationStatus.DB_MISMATCH, couponValidity.getStatus());
-        assertEquals(0, couponValidity.getRemainingUsages());
-        assertEquals(0, couponValidity.getRemainingTime());
-    }
-
     @Test
     public void cleanupConsumedCouponsSuccess() throws
             MalformedJWTException,
             ValidationException {
         long cleanupTimestamp = 100000;
         //generate some coupons and save them in repo
-        String coupon1 = CouponIssuer.buildCouponJWS(Coupon.Type.DISCRETE, 1, "test", FEDERATION_ID, btmKeyPair.getPublic(), btmKeyPair.getPrivate());
-        String coupon2 = CouponIssuer.buildCouponJWS(Coupon.Type.DISCRETE, 1, "test", FEDERATION_ID, btmKeyPair.getPublic(), btmKeyPair.getPrivate());
-        String coupon3 = CouponIssuer.buildCouponJWS(Coupon.Type.PERIODIC, 1, "test", FEDERATION_ID, btmKeyPair.getPublic(), btmKeyPair.getPrivate());
-        String coupon4 = CouponIssuer.buildCouponJWS(Coupon.Type.PERIODIC, 1, "test", FEDERATION_ID, btmKeyPair.getPublic(), btmKeyPair.getPrivate());
-        String coupon5 = CouponIssuer.buildCouponJWS(Coupon.Type.PERIODIC, 1, "test", FEDERATION_ID, btmKeyPair.getPublic(), btmKeyPair.getPrivate());
+        String coupon1 = CouponIssuer.buildCouponJWS(Coupon.Type.DISCRETE, 1, SERVICE_ISSUER_NAME, FEDERATION_ID, serviceBtmKeyPair.getPublic(), serviceBtmKeyPair.getPrivate());
+        String coupon2 = CouponIssuer.buildCouponJWS(Coupon.Type.DISCRETE, 1, SERVICE_ISSUER_NAME, FEDERATION_ID, serviceBtmKeyPair.getPublic(), serviceBtmKeyPair.getPrivate());
+        String coupon3 = CouponIssuer.buildCouponJWS(Coupon.Type.PERIODIC, 1, SERVICE_ISSUER_NAME, FEDERATION_ID, serviceBtmKeyPair.getPublic(), serviceBtmKeyPair.getPrivate());
+        String coupon4 = CouponIssuer.buildCouponJWS(Coupon.Type.PERIODIC, 1, SERVICE_ISSUER_NAME, FEDERATION_ID, serviceBtmKeyPair.getPublic(), serviceBtmKeyPair.getPrivate());
+        String coupon5 = CouponIssuer.buildCouponJWS(Coupon.Type.PERIODIC, 1, SERVICE_ISSUER_NAME, FEDERATION_ID, serviceBtmKeyPair.getPublic(), serviceBtmKeyPair.getPrivate());
         AccountingCoupon accountingCoupon1 = new AccountingCoupon(coupon1);
         accountingCoupon1.setLastConsumptionTimestamp(cleanupTimestamp - 1);
         accountingCoupon1.setStatus(CouponValidationStatus.CONSUMED_COUPON);

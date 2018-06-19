@@ -12,7 +12,7 @@ import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.BTMClient;
 import eu.h2020.symbiote.security.communication.payloads.BarteredAccessRequest;
 import eu.h2020.symbiote.security.communication.payloads.CouponRequest;
-import eu.h2020.symbiote.security.handler.ComponentSecurityHandler;
+import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import org.junit.Before;
@@ -26,11 +26,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static eu.h2020.symbiote.security.commons.Coupon.Type;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 @TestPropertySource("/service.properties")
 public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
@@ -55,11 +56,14 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         mockedComponentSecurityHandler = componentSecurityHandlerProvider.getComponentSecurityHandler();
         mockedSecurityHandler = mockedComponentSecurityHandler.getSecurityHandler();
 
-
         ReflectionTestUtils.setField(barteredAccessManagementService, "coreBTMClient", new BTMClient(serverAddress + "/test/btm"));
         dummyCoreAAMAndBTM.registrationStatus = HttpStatus.OK;
         dummyCoreAAMAndBTM.couponValidationStatus = CouponValidationStatus.VALID;
         dummyPlatformBTM.receivedCouponIssuer = dummyPlatformId;
+        Set<String> satisfiedPoliciesIdentifiers = new HashSet<>();
+        satisfiedPoliciesIdentifiers.add("one");
+        doReturn(satisfiedPoliciesIdentifiers).when(mockedComponentSecurityHandler).getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any());
+        doReturn(new SecurityRequest("")).when(mockedComponentSecurityHandler).generateSecurityRequestUsingLocalCredentials();
 
         doReturn(new AAMClient(serverAddress + "/test/caam").getAvailableAAMs().getAvailableAAMs())
                 .when(mockedSecurityHandler).getAvailableAAMs();
@@ -150,7 +154,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             InvalidArgumentsException {
 
         federationsRepository.save(federation);
-        when(mockedSecurityHandler.getAvailableAAMs()).thenThrow(new SecurityHandlerException(""));
+        doThrow(new SecurityHandlerException("")).when(mockedSecurityHandler).getAvailableAAMs();
         BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
@@ -195,11 +199,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             BTMException,
             InvalidArgumentsException {
         federationsRepository.save(federation);
-        ComponentSecurityHandler mockedComponentSecurityHandler = Mockito.mock(ComponentSecurityHandler.class);
-        when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenThrow(new SecurityHandlerException(""));
-        when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
-        when(mockedComponentSecurityHandler.getSecurityHandler())
-                .thenReturn(mockedSecurityHandler);
+        doThrow(new SecurityHandlerException("")).when(mockedComponentSecurityHandler).generateSecurityRequestUsingLocalCredentials();
         BarteredAccessRequest barteredAccessRequest = new BarteredAccessRequest(dummyPlatformId, federationId, "resourceId", Type.DISCRETE);
         barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest);
     }
@@ -298,9 +298,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
             BTMException,
             ValidationException {
         // set mock to return that SecurityRequest do not pass AP
-        ComponentSecurityHandler mockedComponentSecurityHandler = Mockito.mock(ComponentSecurityHandler.class);
-        when(mockedComponentSecurityHandler.getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any())).thenReturn(new HashSet<>());
-        when(componentSecurityHandlerProvider.getComponentSecurityHandler()).thenReturn(mockedComponentSecurityHandler);
+        doReturn(new HashSet<>()).when(mockedComponentSecurityHandler).getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any());
         //create request (checking SecurityRequest is mocked)
         CouponRequest couponRequest = new CouponRequest(Type.DISCRETE, federationId, PLATFORM_ID, null);
         barteredAccessManagementService.getCoupon(couponRequest);

@@ -29,7 +29,7 @@ import java.util.Set;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @Profile("test")
 @Configuration
@@ -38,6 +38,11 @@ public class TestConfig {
     private ISecurityHandler mockedSecurityHandler;
     private IComponentSecurityHandler mockedComponentSecurityHandler;
     private String BTM_AP_NAME = "btmAPName";
+
+    public static final String SERVICE_KEY_STORE_NAME = "keystores/dummy_service_btm.p12";
+    public static final String SERVICE_KEY_STORE_PATH = "./src/test/resources/keystores/dummy_service_btm.p12";
+    public static final String SERVICE_ISSUER_NAME = "service";
+    public static final String NO_CONNECTION_ISSUER_NAME = "noConnection";
 
     @Bean
     @Primary
@@ -93,13 +98,21 @@ public class TestConfig {
                 .thenReturn(new BoundCredentials(homeCredentials));
         when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials())
                 .thenReturn(new SecurityRequest(""));
+
         when(mockedSecurityHandler.getComponentCertificate(eq("btm"), any()))
                 .thenReturn(new Certificate(
                         CryptoHelper.convertX509ToPEM(AbstractBTMTestSuite.getCertificateFromTestKeystore(
                                 KEY_STORE_FILE_NAME,
                                 KEY_STORE_PASSWORD,
                                 CERTIFICATE_ALIAS))));
-
+        doReturn(new Certificate(
+                CryptoHelper.convertX509ToPEM(AbstractBTMTestSuite.getCertificateFromTestKeystore(
+                        SERVICE_KEY_STORE_NAME,
+                        KEY_STORE_PASSWORD,
+                        CERTIFICATE_ALIAS))))
+                .when(mockedSecurityHandler).getComponentCertificate("btm", SERVICE_ISSUER_NAME);
+        doThrow(new SecurityHandlerException("no connection"))
+                .when(mockedSecurityHandler).getComponentCertificate("btm", NO_CONNECTION_ISSUER_NAME);
         return componentSecurityHandlerProvider;
     }
 }
