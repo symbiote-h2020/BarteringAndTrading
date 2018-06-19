@@ -1,9 +1,10 @@
 package eu.h2020.symbiote.bartering.services;
 
+import eu.h2020.symbiote.bartering.config.AppConfig;
+import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.repositories.CouponsWallet;
 import eu.h2020.symbiote.bartering.repositories.FederationsRepository;
 import eu.h2020.symbiote.bartering.repositories.entities.CouponEntity;
-import eu.h2020.symbiote.bartering.services.helpers.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
@@ -51,13 +52,16 @@ public class BarteredAccessManagementService {
     private final CouponIssuer couponIssuer;
     private final CouponsWallet couponsWallet;
     private final FederationsRepository federationsRepository;
+    private final AppConfig appConfig;
 
     @Autowired
     public BarteredAccessManagementService(CouponIssuer couponIssuer,
                                            @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
                                            CouponsWallet couponsWallet,
                                            FederationsRepository federationsRepository,
-                                           ComponentSecurityHandlerProvider componentSecurityHandlerProvider) {
+                                           ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
+                                           AppConfig appConfig) {
+        this.appConfig = appConfig;
         String coreBTMAddress = (coreInterfaceAddress.endsWith("/aam")
                 ? coreInterfaceAddress.substring(0, coreInterfaceAddress.length() - 4)
                 : coreInterfaceAddress)
@@ -93,8 +97,8 @@ public class BarteredAccessManagementService {
                 .map(FederationMember::getPlatformId)
                 .collect(Collectors.toSet());
         if (!federationMembersIds.contains(barteredAccessRequest.getClientPlatform())
-                || !federationMembersIds.contains(componentSecurityHandlerProvider.getPlatformIdentifier())) {
-            throw new ValidationException("Local platform or clients platform is not in proveded federation");
+                || !federationMembersIds.contains(appConfig.getPlatformIdentifier())) {
+            throw new ValidationException("Local platform or clients platform is not in provided federation");
         }
 
         //get clients btm address
@@ -115,7 +119,7 @@ public class BarteredAccessManagementService {
         //generate coupon Request
         CouponRequest couponRequest = new CouponRequest(barteredAccessRequest.getCouponType(),
                 barteredAccessRequest.getFederationId(),
-                componentSecurityHandlerProvider.getPlatformIdentifier(),
+                appConfig.getPlatformIdentifier(),
                 componentSecurityHandlerProvider.getComponentSecurityHandler().generateSecurityRequestUsingLocalCredentials());
 
         String receivedCouponString = remotePlatformBTMClient.getCoupon(couponRequest);
@@ -126,14 +130,14 @@ public class BarteredAccessManagementService {
             return false;
         }
         // if we have received our own coupon but it was already invalidated (we couldn't consume it anymore)
-        if (claims.getIssuer().equals(componentSecurityHandlerProvider.getPlatformIdentifier())
+        if (claims.getIssuer().equals(appConfig.getPlatformIdentifier())
                 //TODO shouldn't we pass the resource id for which we want to consume this coupon?
                 && !coreBTMClient.consumeCoupon(receivedCouponString)) {
             log.error("Core did not confirmed coupon consumption.");
             return false;
         }
         // if we have received foreign coupon for bartering
-        if (!claims.getIssuer().equals(componentSecurityHandlerProvider.getPlatformIdentifier())) {
+        if (!claims.getIssuer().equals(appConfig.getPlatformIdentifier())) {
             // validate coupon in core
             CouponValidity couponValidity = coreBTMClient.isCouponValid(receivedCouponString);
             // TODO: validate B&T deal

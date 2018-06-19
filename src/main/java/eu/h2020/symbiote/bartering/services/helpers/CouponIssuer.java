@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.bartering.services.helpers;
 
+import eu.h2020.symbiote.bartering.config.AppConfig;
+import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.repositories.CouponsWallet;
 import eu.h2020.symbiote.bartering.repositories.entities.CouponEntity;
 import eu.h2020.symbiote.security.commons.Coupon;
@@ -42,16 +44,19 @@ public class CouponIssuer {
     private final CouponsWallet couponsWallet;
     private final long periodicCouponValidity;
     private final long discreteCouponValidity;
+    private final AppConfig appConfig;
 
     @Autowired
     public CouponIssuer(ComponentSecurityHandlerProvider componentSecurityHandlerProvider,
                         CouponsWallet couponsWallet,
                         @Value("${btm.deployment.couponEntity.periodic.validity}") long periodicCouponValidity,
-                        @Value("${btm.deployment.couponEntity.discrete.validity}") long discreteCouponValidity) {
+                        @Value("${btm.deployment.couponEntity.discrete.validity}") long discreteCouponValidity,
+                        AppConfig appConfig) {
         this.componentSecurityHandlerProvider = componentSecurityHandlerProvider;
         this.couponsWallet = couponsWallet;
         this.periodicCouponValidity = periodicCouponValidity;
         this.discreteCouponValidity = discreteCouponValidity;
+        this.appConfig = appConfig;
     }
 
     public static String buildCouponJWS(Coupon.Type voucherType,
@@ -97,10 +102,10 @@ public class CouponIssuer {
             Coupon coupon = new Coupon(buildCouponJWS(
                     couponType,
                     couponValidity,
-                    componentSecurityHandlerProvider.getPlatformIdentifier(),
+                    appConfig.getPlatformIdentifier(),
                     federationId,
-                    componentSecurityHandlerProvider.getHomeCredentials().certificate.getX509().getPublicKey(),
-                    componentSecurityHandlerProvider.getHomeCredentials().privateKey
+                    componentSecurityHandlerProvider.getComponentSecurityHandler().getLocalAAMCredentials().homeCredentials.certificate.getX509().getPublicKey(),
+                    componentSecurityHandlerProvider.getComponentSecurityHandler().getLocalAAMCredentials().homeCredentials.privateKey
             ));
             couponsWallet.save(new CouponEntity(coupon));
             return coupon;

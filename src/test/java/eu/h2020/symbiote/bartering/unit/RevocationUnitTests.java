@@ -1,9 +1,9 @@
 package eu.h2020.symbiote.bartering.unit;
 
 import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
+import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.CouponRevocationService;
-import eu.h2020.symbiote.bartering.services.helpers.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
@@ -153,8 +153,8 @@ public class RevocationUnitTests extends
                 1,
                 "Wrong Issuer",
                 FEDERATION_ID,
-                componentSecurityHandlerProvider.getHomeCredentials().certificate.getX509().getPublicKey(),
-                componentSecurityHandlerProvider.getHomeCredentials().privateKey
+                componentSecurityHandlerProvider.getComponentSecurityHandler().getLocalAAMCredentials().homeCredentials.certificate.getX509().getPublicKey(),
+                componentSecurityHandlerProvider.getComponentSecurityHandler().getLocalAAMCredentials().homeCredentials.privateKey
         ));
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(BTMOwnerUsername, BTMOwnerPassword));

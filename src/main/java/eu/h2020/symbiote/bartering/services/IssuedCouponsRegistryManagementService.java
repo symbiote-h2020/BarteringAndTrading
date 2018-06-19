@@ -1,8 +1,8 @@
 package eu.h2020.symbiote.bartering.services;
 
+import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.repositories.GlobalCouponsRegistry;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
-import eu.h2020.symbiote.bartering.services.helpers.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
