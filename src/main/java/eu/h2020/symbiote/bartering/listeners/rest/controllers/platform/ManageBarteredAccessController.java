@@ -82,6 +82,9 @@ public class ManageBarteredAccessController implements IManageBarteredAccess {
         } catch (SecurityHandlerException | BTMException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(e.getErrorMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (WrongCredentialsException e) {
+            log.error(e.getMessage());
+            return new ResponseEntity<>(e.getErrorMessage(), HttpStatus.UNAUTHORIZED);
         }
     }
 }

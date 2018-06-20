@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.bartering.services;
 
-import eu.h2020.symbiote.bartering.communication.IFeignCoreBTMClient;
+import eu.h2020.symbiote.bartering.communication.CoreBTMClient;
 import eu.h2020.symbiote.bartering.config.AppConfig;
 import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.repositories.CouponsWallet;
@@ -12,7 +12,6 @@ import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
-import eu.h2020.symbiote.security.clients.SymbioteComponentClientFactory;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
@@ -23,7 +22,6 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.BarteredAccessRequest;
 import eu.h2020.symbiote.security.communication.payloads.CouponRequest;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
-import feign.Response;
 import io.jsonwebtoken.Claims;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -56,7 +54,6 @@ public class BarteredAccessManagementService {
     private final CouponsWallet couponsWallet;
     private final FederationsRepository federationsRepository;
     private final AppConfig appConfig;
-    private IFeignCoreBTMClient coreBTMClient;
 
     @Autowired
     public BarteredAccessManagementService(CouponIssuer couponIssuer,
@@ -76,17 +73,6 @@ public class BarteredAccessManagementService {
         this.federationsRepository = federationsRepository;
     }
 
-    private IFeignCoreBTMClient getCoreBTMClient() throws SecurityHandlerException {
-        if (this.coreBTMClient == null) {
-            this.coreBTMClient = SymbioteComponentClientFactory.createClient(coreBTMAddress,
-                    IFeignCoreBTMClient.class,
-                    "btm",
-                    SecurityConstants.CORE_AAM_INSTANCE_ID,
-                    this.componentSecurityHandlerProvider.getComponentSecurityHandler());
-        }
-        return this.coreBTMClient;
-    }
-
     /**
      * Check, if user/actor from federated platform can access resource.
      *
@@ -101,7 +87,8 @@ public class BarteredAccessManagementService {
             BTMException,
             ValidationException,
             SecurityHandlerException,
-            InvalidArgumentsException {
+            InvalidArgumentsException,
+            WrongCredentialsException {
         // check if both client requesting access and this platform is in the given federation
         if (!federationsRepository.exists(barteredAccessRequest.getFederationId())) {
             throw new InvalidArgumentsException("Provided federation doesn't exist");
@@ -144,18 +131,17 @@ public class BarteredAccessManagementService {
             return false;
         }
         // if we have received our own coupon but it was already invalidated (we couldn't consume it anymore)
-        if (claims.getIssuer().equals(appConfig.getPlatformIdentifier())) {
-                //TODO shouldn't we pass the resource id for which we want to consume this coupon?
-            Response response = getCoreBTMClient().consumeCoupon(receivedCouponString);
-            if (response.status() != 200) {
-                log.error("Core did not confirmed coupon consumption.");
-                return false;
-            }
+        CoreBTMClient coreBTMClient = new CoreBTMClient(this.coreBTMAddress, this.componentSecurityHandlerProvider.getComponentSecurityHandler());
+        if (claims.getIssuer().equals(appConfig.getPlatformIdentifier())
+                && !coreBTMClient.consumeCoupon(receivedCouponString)) {
+            //TODO shouldn't we pass the resource id for which we want to consume this coupon?
+            log.error("Core did not confirmed coupon consumption.");
+            return false;
         }
         // if we have received foreign coupon for bartering
         if (!claims.getIssuer().equals(appConfig.getPlatformIdentifier())) {
             // validate coupon in core
-            CouponValidity couponValidity = getCoreBTMClient().isCouponValid(receivedCouponString);
+            CouponValidity couponValidity = coreBTMClient.isCouponValid(receivedCouponString);
             // TODO: validate B&T deal
             if (!couponValidity.getStatus().equals(CouponValidationStatus.VALID)) {
                 log.error("CouponEntity received for bartering did not pass validation in Core.");
@@ -202,9 +188,10 @@ public class BarteredAccessManagementService {
                     couponRequest.getCouponType(),
                     couponRequest.getFederationId(),
                     CouponValidationStatus.VALID);
+            CoreBTMClient coreBTMClient = new CoreBTMClient(this.coreBTMAddress, this.componentSecurityHandlerProvider.getComponentSecurityHandler());
             for (CouponEntity couponEntity : couponEntityHashSet) {
                 // validate couponEntity in core
-                CouponValidity couponValidity = getCoreBTMClient().isCouponValid(couponEntity.getCouponString());
+                CouponValidity couponValidity = coreBTMClient.isCouponValid(couponEntity.getCouponString());
                 // if core confirms Validity of the couponEntity - return it
                 if (couponValidity.getStatus().equals(CouponValidationStatus.VALID)) {
                     return couponEntity.getCouponString();
@@ -216,7 +203,7 @@ public class BarteredAccessManagementService {
             // if no valid coupon found - create new for bartering
             Coupon coupon = couponIssuer.getCoupon(couponRequest.getCouponType(), couponRequest.getFederationId());
             //register coupon in core
-            if (getCoreBTMClient().registerCoupon(coupon.getCoupon()).status() != 200) {
+            if (!coreBTMClient.registerCoupon(coupon.getCoupon())) {
                 couponsWallet.delete(coupon.getId());
                 throw new BTMException("Couldn't register new coupon.");
             }

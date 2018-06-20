@@ -2,6 +2,7 @@ package eu.h2020.symbiote.bartering.unit;
 
 import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
 import eu.h2020.symbiote.bartering.TestConfig;
+import eu.h2020.symbiote.bartering.communication.CoreBTMClient;
 import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
@@ -15,24 +16,29 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
+import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 
 import static eu.h2020.symbiote.bartering.TestConfig.NO_CONNECTION_ISSUER_NAME;
 import static eu.h2020.symbiote.bartering.TestConfig.SERVICE_ISSUER_NAME;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 
 @TestPropertySource("/core.properties")
 public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuite {
@@ -58,9 +64,14 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         this.serviceBtmKeyPair = new KeyPair(certificate.getPublicKey(), privateKey);
 
         mockedComponentSecurityHandler = componentSecurityHandlerProvider.getComponentSecurityHandler();
+        when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest("eyJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJ0ZXN0dXNlcm5hbWUiLCJzdWIiOiJ0ZXN0Y2xpZW50aWQiLCJpYXQiOjE1MDE1MDk3ODIsImV4cCI6MTUwMTUwOTg0Mn0.SGNpyl3zRA_ptRhA0lFH0o7-nhf3mpxE95ss37_jHYbCnwlRb4zDvVaYCj9DlpppU4U0y3vIPEqM44vV2UZ5Iw"));
+        doReturn(true).when(mockedComponentSecurityHandler).isReceivedServiceResponseVerified(Mockito.any(), Mockito.any(), Mockito.any());
+        when(mockedComponentSecurityHandler.generateServiceResponse()).thenReturn("ServiceResponce");
         mockedSecurityHandler = mockedComponentSecurityHandler.getSecurityHandler();
         doReturn(new AAMClient(serverAddress + "/test/caam").getAvailableAAMs().getAvailableAAMs())
                 .when(mockedSecurityHandler).getAvailableAAMs();
+
+        doReturn(new HashSet<>(Collections.singletonList("anything"))).when(mockedComponentSecurityHandler).getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any());
     }
 
     @Test
@@ -514,5 +525,79 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         assertFalse(globalCouponsRegistry.exists(accountingCoupon3.getId()));
     }
 
+    @Test
+    public void coreBTMClientRegisterCouponSuccess() throws
+            SecurityHandlerException,
+            MalformedJWTException {
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+        //generate coupon using btm cert
+        String couponString = CouponIssuer.buildCouponJWS(
+                Coupon.Type.DISCRETE,
+                2,
+                SERVICE_ISSUER_NAME,
+                FEDERATION_ID,
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        //check if coupon not in db
+        assertFalse(globalCouponsRegistry.exists(registeredCouponId));
+        //register coupon
+        assertTrue(coreBTMClient.registerCoupon(couponString));
+        //check the DB
+        assertTrue(globalCouponsRegistry.exists(registeredCouponId));
+        AccountingCoupon accountingCoupon = globalCouponsRegistry.findOne(registeredCouponId);
+        assertEquals(couponString, accountingCoupon.getCouponString());
+        assertEquals(0, accountingCoupon.getFirstUseTimestamp());
+        assertEquals(0, accountingCoupon.getLastConsumptionTimestamp());
+        assertEquals(0, accountingCoupon.getUsagesCounter());
+        assertEquals(Coupon.Type.DISCRETE, accountingCoupon.getType());
+        assertEquals(CouponValidationStatus.VALID, accountingCoupon.getStatus());
+    }
+
+    @Test
+    public void coreBTMClientRegisterCouponFailNotPassedAP() throws
+            SecurityHandlerException,
+            MalformedJWTException {
+        doReturn(new HashSet<>()).when(mockedComponentSecurityHandler).getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any());
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+        //generate coupon using btm cert
+        String couponString = CouponIssuer.buildCouponJWS(
+                Coupon.Type.DISCRETE,
+                2,
+                SERVICE_ISSUER_NAME,
+                FEDERATION_ID,
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        //check if coupon not in db
+        assertFalse(globalCouponsRegistry.exists(registeredCouponId));
+        //register coupon
+        assertFalse(coreBTMClient.registerCoupon(couponString));
+    }
+
+    @Test
+    public void coreBTMClientRegisterCouponFailEmptySecurityRequest() throws
+            SecurityHandlerException,
+            MalformedJWTException {
+        when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest(""));
+
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+        //generate coupon using btm cert
+        String couponString = CouponIssuer.buildCouponJWS(
+                Coupon.Type.DISCRETE,
+                2,
+                SERVICE_ISSUER_NAME,
+                FEDERATION_ID,
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        //check if coupon not in db
+        assertFalse(globalCouponsRegistry.exists(registeredCouponId));
+        //register coupon
+        assertFalse(coreBTMClient.registerCoupon(couponString));
+    }
 
 }

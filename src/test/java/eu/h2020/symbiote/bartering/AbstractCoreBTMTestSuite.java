@@ -118,7 +118,7 @@ public abstract class AbstractCoreBTMTestSuite {
     @Before
     public void setUp() throws Exception {
         // Catch the random port
-        serverAddress = "https://localhost:" + port;
+        serverAddress = "http://localhost:" + port;
         btmClient = new BTMClient(serverAddress);
         dummyCoreAAMAndBTM.port = port;
         // cleanup db

@@ -14,7 +14,6 @@ import eu.h2020.symbiote.security.communication.BTMClient;
 import eu.h2020.symbiote.security.communication.IBTMClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
@@ -31,10 +30,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
@@ -68,7 +63,7 @@ public abstract class AbstractBTMTestSuite {
 
 
     protected String serverAddress;
-    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:http://localhost:8443}")
     protected String coreInterfaceAddress;
 
     @Value("${btm.deployment.owner.username}")
@@ -87,31 +82,6 @@ public abstract class AbstractBTMTestSuite {
     protected IBTMClient btmClient;
     @LocalServerPort
     private int port;
-
-    @BeforeClass
-    public static void setupSuite() throws Exception {
-        // Create a trust manager that does not validate certificate chains
-        TrustManager[] trustAllCerts = new TrustManager[]{
-                new X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return null;
-                    }
-
-                    public void checkClientTrusted(
-                            java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-
-                    public void checkServerTrusted(
-                            java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-                }
-        };
-
-        // Install the all-trusting trust manager
-        SSLContext sc = SSLContext.getInstance("SSL");
-        sc.init(null, trustAllCerts, new java.security.SecureRandom());
-        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-    }
 
     public static X509Certificate getCertificateFromTestKeystore(String keyStoreName, String keyStorePassword, String certificateAlias) throws
             NoSuchProviderException,
@@ -139,7 +109,7 @@ public abstract class AbstractBTMTestSuite {
     @Before
     public void setUp() throws Exception {
         // Catch the random port
-        serverAddress = "https://localhost:" + port;
+        serverAddress = "http://localhost:" + port;
         btmClient = new BTMClient(serverAddress);
         userKeyPair = CryptoHelper.createKeyPair();
         dummyCoreAAMAndBTM.port = port;

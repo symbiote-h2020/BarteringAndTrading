@@ -31,6 +31,7 @@ public interface IFeignCoreBTMClient {
             SecurityConstants.TOKEN_HEADER_NAME + ": " + "{couponString}"})
     Response registerCoupon(@Param("couponString") String couponString);
 
+    //not implemented
     @RequestLine("POST " + SecurityConstants.BTM_REVOKE_COUPON)
     @Headers("Content-Type: application/json")
     Response revokeCoupon(RevocationRequest revocationRequest);

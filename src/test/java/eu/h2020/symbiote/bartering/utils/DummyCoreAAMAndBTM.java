@@ -20,10 +20,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -56,33 +52,7 @@ public class DummyCoreAAMAndBTM {
     private Certificate coreCert;
     private AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
 
-    public DummyCoreAAMAndBTM() throws
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
-            IOException,
-            KeyManagementException {
-        TrustManager[] trustAllCerts = new TrustManager[]{
-                new X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return null;
-                    }
-
-                    public void checkClientTrusted(
-                            java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-
-                    public void checkServerTrusted(
-                            java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-                }
-        };
-
-        // Install the all-trusting trust manager
-        SSLContext sc = SSLContext.getInstance("SSL");
-        sc.init(null, trustAllCerts, new java.security.SecureRandom());
-        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+    public DummyCoreAAMAndBTM() throws Exception {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
@@ -97,7 +67,7 @@ public class DummyCoreAAMAndBTM {
 
     @GetMapping(path = AAM_PATH + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("https://localhost:" + port + AAM_PATH,
+        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("http://localhost:" + port + AAM_PATH,
                 SecurityConstants.CORE_AAM_INSTANCE_ID, SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 coreCert, new HashMap<>()));
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
@@ -105,7 +75,7 @@ public class DummyCoreAAMAndBTM {
         X509Certificate certificate = (X509Certificate) ks.getCertificate(PLATFORM_CERTIFICATE_ALIAS);
         Certificate platformCert = new Certificate(CryptoHelper.convertX509ToPEM(certificate));
 
-        aams.getAvailableAAMs().put(platform1Id, new AAM("https://localhost:" + port + "/test/platform",
+        aams.getAvailableAAMs().put(platform1Id, new AAM("http://localhost:" + port + "/test/platform",
                 platform1Id, platform1Id,
                 platformCert, new HashMap<>()));
 
