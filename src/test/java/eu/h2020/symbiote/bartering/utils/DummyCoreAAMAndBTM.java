@@ -12,12 +12,18 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -55,7 +61,28 @@ public class DummyCoreAAMAndBTM {
             NoSuchAlgorithmException,
             KeyStoreException,
             NoSuchProviderException,
-            IOException {
+            IOException,
+            KeyManagementException {
+        TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
+
+                    public void checkClientTrusted(
+                            java.security.cert.X509Certificate[] certs, String authType) {
+                    }
+
+                    public void checkServerTrusted(
+                            java.security.cert.X509Certificate[] certs, String authType) {
+                    }
+                }
+        };
+
+        // Install the all-trusting trust manager
+        SSLContext sc = SSLContext.getInstance("SSL");
+        sc.init(null, trustAllCerts, new java.security.SecureRandom());
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
@@ -99,18 +126,24 @@ public class DummyCoreAAMAndBTM {
     }
 
     @PostMapping(path = BTM_PATH + SecurityConstants.BTM_REGISTER_COUPON)
-    public ResponseEntity<String> registerCoupon(String couponString) {
-        return new ResponseEntity<>(registrationStatus);
+    public ResponseEntity<String> registerCoupon(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString) {
+        HttpHeaders httpHeaders1 = new HttpHeaders();
+        httpHeaders1.add("x-auth-response", "any");
+        return new ResponseEntity<>(null, httpHeaders1, registrationStatus);
     }
 
     @PostMapping(path = BTM_PATH + SecurityConstants.BTM_CONSUME_COUPON)
-    public ResponseEntity<String> consumeCoupon(String couponString) {
-        return new ResponseEntity<>(consumptionStatus);
+    public ResponseEntity<String> consumeCoupon(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString) {
+        HttpHeaders httpHeaders1 = new HttpHeaders();
+        httpHeaders1.add("x-auth-response", "any");
+        return new ResponseEntity<>(null, httpHeaders1, consumptionStatus);
     }
 
     @PostMapping(path = BTM_PATH + SecurityConstants.BTM_IS_COUPON_VALID)
-    public CouponValidity isCouponValid(String couponString) {
-        return new CouponValidity(couponValidationStatus, Coupon.Type.DISCRETE, 10, 0);
+    public ResponseEntity<CouponValidity> isCouponValid(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString) {
+        HttpHeaders httpHeaders1 = new HttpHeaders();
+        httpHeaders1.add("x-auth-response", "any");
+        return new ResponseEntity<>(new CouponValidity(couponValidationStatus, Coupon.Type.DISCRETE, 10, 0), httpHeaders1, HttpStatus.OK);
     }
 
 
