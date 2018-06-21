@@ -231,7 +231,8 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void getCouponSuccessReturnedStoredCoupon() throws
             JWTCreationException,
             BTMException,
-            ValidationException {
+            ValidationException,
+            WrongCredentialsException {
         //put proper VALID coupon into repo
         CouponEntity locallyStoredCouponEntity = new CouponEntity(couponIssuer.getCoupon(Type.DISCRETE, federationId));
         couponsWallet.save(locallyStoredCouponEntity);
@@ -252,7 +253,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void getCouponSuccessNoStoredCouponsAndReturnedNewCoupon() throws
             ValidationException,
             BTMException,
-            JWTCreationException {
+            JWTCreationException, WrongCredentialsException {
         //check if repo is empty
         assertEquals(0, couponsWallet.count());
         //create request (checking SecurityRequest is mocked)
@@ -269,7 +270,8 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void getCouponSuccessStoredCouponsUpdatedAndReturnedNewCoupon() throws
             ValidationException,
             BTMException,
-            JWTCreationException {
+            JWTCreationException,
+            WrongCredentialsException {
         // change dummy Core BTM to return proper validation status
         dummyCoreAAMAndBTM.couponValidationStatus = CouponValidationStatus.CONSUMED_COUPON;
         //put proper VALID coupon into repo
@@ -294,7 +296,8 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void getCouponFailInvalidSecurityRequest() throws
             JWTCreationException,
             BTMException,
-            ValidationException {
+            ValidationException,
+            WrongCredentialsException {
         // set mock to return that SecurityRequest do not pass AP
         doReturn(new HashSet<>()).when(mockedComponentSecurityHandler).getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any());
         //create request (checking SecurityRequest is mocked)
@@ -306,7 +309,8 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void getCouponFailNoCoreBTMConnection() throws
             JWTCreationException,
             BTMException,
-            ValidationException {
+            ValidationException,
+            WrongCredentialsException {
         ReflectionTestUtils.setField(barteredAccessManagementService, "coreBTMAddress", serverAddress + "/wrongAddress");
         //create request (checking SecurityRequest is mocked)
         CouponRequest couponRequest = new CouponRequest(Type.DISCRETE, federationId, PLATFORM_ID, null);
@@ -317,7 +321,8 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
     public void getCouponFailNewCouponRegistrationError() throws
             JWTCreationException,
             BTMException,
-            ValidationException {
+            ValidationException,
+            WrongCredentialsException {
         // change dummy Core BTM to return proper registrationStatus
         dummyCoreAAMAndBTM.registrationStatus = HttpStatus.BAD_REQUEST;
         //create request (checking SecurityRequest is mocked)

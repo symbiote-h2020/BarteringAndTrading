@@ -8,10 +8,7 @@ import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.AAMClient;
@@ -35,6 +32,7 @@ import java.util.HashSet;
 
 import static eu.h2020.symbiote.bartering.TestConfig.NO_CONNECTION_ISSUER_NAME;
 import static eu.h2020.symbiote.bartering.TestConfig.SERVICE_ISSUER_NAME;
+import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.doReturn;
@@ -557,32 +555,29 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
 
     @Test
     public void coreBTMClientRegisterCouponFailNotPassedAP() throws
-            SecurityHandlerException,
-            MalformedJWTException {
+            SecurityHandlerException {
         doReturn(new HashSet<>()).when(mockedComponentSecurityHandler).getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any());
         CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
-        //generate coupon using btm cert
-        String couponString = CouponIssuer.buildCouponJWS(
-                Coupon.Type.DISCRETE,
-                2,
-                SERVICE_ISSUER_NAME,
-                FEDERATION_ID,
-                serviceBtmKeyPair.getPublic(),
-                serviceBtmKeyPair.getPrivate());
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
-        String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
-        //check if coupon not in db
-        assertFalse(globalCouponsRegistry.exists(registeredCouponId));
-        //register coupon
-        assertFalse(coreBTMClient.registerCoupon(couponString));
+        assertFalse(coreBTMClient.registerCoupon(""));
     }
 
     @Test
     public void coreBTMClientRegisterCouponFailEmptySecurityRequest() throws
-            SecurityHandlerException,
-            MalformedJWTException {
+            SecurityHandlerException {
         when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest(""));
 
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+        assertFalse(coreBTMClient.registerCoupon(""));
+    }
+
+    @Test
+    public void coreBTMClientConsumeCouponSuccess() throws
+            SecurityHandlerException,
+            MalformedJWTException,
+            ValidationException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            BTMException {
         CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
         //generate coupon using btm cert
         String couponString = CouponIssuer.buildCouponJWS(
@@ -594,10 +589,90 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 serviceBtmKeyPair.getPrivate());
         JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
-        //check if coupon not in db
-        assertFalse(globalCouponsRegistry.exists(registeredCouponId));
-        //register coupon
-        assertFalse(coreBTMClient.registerCoupon(couponString));
+        globalCouponsRegistry.save(new AccountingCoupon(couponString));
+        //check if coupon in db
+        assertTrue(globalCouponsRegistry.exists(registeredCouponId));
+        //consume coupon
+        assertTrue(coreBTMClient.consumeCoupon(couponString));
+        //check the DB
+        assertTrue(globalCouponsRegistry.exists(registeredCouponId));
+        AccountingCoupon accountingCoupon = globalCouponsRegistry.findOne(registeredCouponId);
+        assertEquals(couponString, accountingCoupon.getCouponString());
+        assertEquals(1, accountingCoupon.getUsagesCounter());
+        assertEquals(Coupon.Type.DISCRETE, accountingCoupon.getType());
+        assertEquals(CouponValidationStatus.VALID, accountingCoupon.getStatus());
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void coreBTMClientConsumeCouponFailNotPassedAP() throws
+            SecurityHandlerException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            BTMException {
+        doReturn(new HashSet<>()).when(mockedComponentSecurityHandler).getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any());
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+        assertFalse(coreBTMClient.consumeCoupon(""));
+    }
+
+    @Test(expected = InvalidArgumentsException.class)
+    public void coreBTMClientConsumeCouponFailEmptySecurityRequest() throws
+            SecurityHandlerException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            BTMException {
+        when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest(""));
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+        assertFalse(coreBTMClient.consumeCoupon(""));
+    }
+
+    @Test
+    public void coreBTMClientIsCouponValidSuccess() throws
+            SecurityHandlerException,
+            MalformedJWTException,
+            ValidationException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            BTMException {
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+        //generate coupon using btm cert
+        String couponString = CouponIssuer.buildCouponJWS(
+                Coupon.Type.DISCRETE,
+                2,
+                SERVICE_ISSUER_NAME,
+                FEDERATION_ID,
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
+        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
+        globalCouponsRegistry.save(new AccountingCoupon(couponString));
+        //check if coupon in db
+        assertTrue(globalCouponsRegistry.exists(registeredCouponId));
+        //check coupon
+        CouponValidity couponValidity = coreBTMClient.isCouponValid(couponString);
+        //check the validity
+        assertEquals(CouponValidationStatus.VALID, couponValidity.getStatus());
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void coreBTMClientIsCouponValidFailNotPassedAP() throws
+            SecurityHandlerException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            BTMException {
+        doReturn(new HashSet<>()).when(mockedComponentSecurityHandler).getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any());
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+        coreBTMClient.isCouponValid("");
+    }
+
+    @Test(expected = InvalidArgumentsException.class)
+    public void coreBTMClientIsCouponValidFailEmptySecurityRequest() throws
+            SecurityHandlerException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            BTMException {
+        when(mockedComponentSecurityHandler.generateSecurityRequestUsingLocalCredentials()).thenReturn(new SecurityRequest(""));
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+        coreBTMClient.isCouponValid("");
     }
 
 }

@@ -50,7 +50,7 @@ public class ManageBarteredAccessController implements IManageBarteredAccess {
         } catch (ValidationException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>("Wrong couponRequest", HttpStatus.BAD_REQUEST);
-        } catch (JWTCreationException | BTMException e) {
+        } catch (JWTCreationException | BTMException | WrongCredentialsException e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }

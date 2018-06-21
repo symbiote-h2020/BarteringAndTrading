@@ -166,7 +166,8 @@ public class BarteredAccessManagementService {
     public String getCoupon(CouponRequest couponRequest) throws
             ValidationException,
             BTMException,
-            JWTCreationException {
+            JWTCreationException,
+            WrongCredentialsException {
         try {
             // building CHTAP access policy
             Map<String, IAccessPolicy> componentHomeTokenAPs = new HashMap<>();

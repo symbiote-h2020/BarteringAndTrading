@@ -8,11 +8,12 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerExcep
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import feign.FeignException;
 import feign.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class CoreBTMClient {
+public class CoreBTMClient implements ICoreBTMClient {
 
     private final static Log log = LogFactory.getLog(CoreBTMClient.class);
     private final IFeignCoreBTMClient feignCoreBTMClient;
@@ -44,9 +45,22 @@ public class CoreBTMClient {
         }
     }
 
-    //TODO
-    public CouponValidity isCouponValid(String couponString) {
-        return this.feignCoreBTMClient.isCouponValid(couponString);
+    public CouponValidity isCouponValid(String couponString) throws
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            BTMException {
+        try {
+            return this.feignCoreBTMClient.isCouponValid(couponString);
+        } catch (FeignException e) {
+            switch (e.status()) {
+                case 400:
+                    throw new InvalidArgumentsException(e.getMessage());
+                case 401:
+                    throw new WrongCredentialsException(e.getMessage());
+                default:
+                    throw new BTMException(e.getMessage()); //500
+            }
+        }
     }
 
     public boolean consumeCoupon(String couponString) throws
