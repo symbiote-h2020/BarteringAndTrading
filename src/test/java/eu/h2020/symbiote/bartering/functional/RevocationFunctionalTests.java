@@ -47,11 +47,11 @@ public class RevocationFunctionalTests extends
 
     @Test
     public void revokeCouponRESTSuccess() throws
-            BTMException,
-            WrongCredentialsException,
-            InvalidArgumentsException,
             MalformedJWTException,
-            ValidationException {
+            ValidationException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            BTMException {
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCouponString(couponString);
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);

@@ -3,8 +3,8 @@ package eu.h2020.symbiote.bartering;
 import eu.h2020.symbiote.bartering.repositories.GlobalCouponsRegistry;
 import eu.h2020.symbiote.bartering.services.IssuedCouponsRegistryManagementService;
 import eu.h2020.symbiote.bartering.utils.DummyCoreAAMAndBTM;
-import eu.h2020.symbiote.security.communication.BTMClient;
-import eu.h2020.symbiote.security.communication.IBTMClient;
+import eu.h2020.symbiote.security.communication.BTMComponentClient;
+import eu.h2020.symbiote.security.communication.IBTMComponentClient;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
@@ -62,7 +62,7 @@ public abstract class AbstractCoreBTMTestSuite {
     protected String CERTIFICATE_ALIAS;
     protected static final String FEDERATION_ID = "testFederationId";
 
-    protected IBTMClient btmClient;
+    protected IBTMComponentClient btmClient;
     @LocalServerPort
     private int port;
 
@@ -119,7 +119,7 @@ public abstract class AbstractCoreBTMTestSuite {
     public void setUp() throws Exception {
         // Catch the random port
         serverAddress = "http://localhost:" + port;
-        btmClient = new BTMClient(serverAddress);
+        btmClient = new BTMComponentClient(serverAddress);
         dummyCoreAAMAndBTM.port = port;
         // cleanup db
         globalCouponsRegistry.deleteAll();

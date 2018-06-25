@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.bartering.communication;
 
+import eu.h2020.symbiote.bartering.communication.interfaces.ICoreBTMClient;
+import eu.h2020.symbiote.bartering.communication.interfaces.IFeignCoreBTMClient;
 import eu.h2020.symbiote.security.clients.SymbioteComponentClientFactory;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
@@ -13,10 +15,17 @@ import feign.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+/**
+ * REST client responsible for communication with Core Bartering Trading Module
+ *
+ * @author Jakub Toczek (PSNC)
+ * @author Mikołaj Dobski (PSNC)
+ */
 public class CoreBTMClient implements ICoreBTMClient {
 
-    private final static Log log = LogFactory.getLog(CoreBTMClient.class);
+    private static final Log log = LogFactory.getLog(CoreBTMClient.class);
     private final IFeignCoreBTMClient feignCoreBTMClient;
+    private static final String NO_REASON_MESSAGE = "Server rejected the request.";
 
     public CoreBTMClient(String coreBTMAddress,
                          IComponentSecurityHandler componentSecurityHandler) throws
@@ -34,13 +43,13 @@ public class CoreBTMClient implements ICoreBTMClient {
             case 200:
                 return true;
             case 400:
-                log.error("Bad request: " + response.reason());
+                log.error("Bad request: " + (response.reason() == null ? NO_REASON_MESSAGE : response.reason()));
                 return false;
             case 401:
-                log.error("Unauthorized: " + response.reason());
+                log.error("Unauthorized: " + (response.reason() == null ? NO_REASON_MESSAGE : response.reason()));
                 return false;
             default:
-                log.error("Internal server error: " + response.reason());
+                log.error("Internal server error: " + (response.reason() == null ? NO_REASON_MESSAGE : response.reason()));
                 return false; //500
         }
     }
@@ -71,11 +80,11 @@ public class CoreBTMClient implements ICoreBTMClient {
             case 200:
                 return true;
             case 400:
-                throw new InvalidArgumentsException(response.reason());
+                throw new InvalidArgumentsException(response.reason() == null ? NO_REASON_MESSAGE : response.reason());
             case 401:
-                throw new WrongCredentialsException(response.reason());
+                throw new WrongCredentialsException(response.reason() == null ? NO_REASON_MESSAGE : response.reason());
             default:
-                throw new BTMException(response.reason()); //500
+                throw new BTMException(response.reason() == null ? NO_REASON_MESSAGE : response.reason()); //500
         }
     }
 

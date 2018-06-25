@@ -1,10 +1,16 @@
-package eu.h2020.symbiote.bartering.communication;
+package eu.h2020.symbiote.bartering.communication.interfaces;
 
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 
+/**
+ * Interface describing communication to Core Bartering Trading Module
+ *
+ * @author Jakub Toczek (PSNC)
+ * @author Mikołaj Dobski (PSNC)
+ */
 public interface ICoreBTMClient {
 
     /**

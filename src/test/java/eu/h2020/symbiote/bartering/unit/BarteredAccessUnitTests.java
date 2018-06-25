@@ -1,11 +1,13 @@
 package eu.h2020.symbiote.bartering.unit;
 
 import eu.h2020.symbiote.bartering.AbstractBTMTestSuite;
+import eu.h2020.symbiote.bartering.communication.BTMClient;
 import eu.h2020.symbiote.bartering.config.AppConfig;
 import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.repositories.entities.CouponEntity;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
+import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.AAMClient;
@@ -242,7 +244,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         String couponString = barteredAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);
-        eu.h2020.symbiote.security.commons.Coupon coupon = new eu.h2020.symbiote.security.commons.Coupon(couponString);
+        Coupon coupon = new Coupon(couponString);
         //returned coupon should have proper type
         assertEquals(Type.DISCRETE, coupon.getType());
         //returned coupon should be different than those stored
@@ -261,7 +263,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         String couponString = barteredAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);
-        eu.h2020.symbiote.security.commons.Coupon coupon = new eu.h2020.symbiote.security.commons.Coupon(couponString);
+        Coupon coupon = new Coupon(couponString);
         //returned coupon should have proper type
         assertEquals(Type.DISCRETE, coupon.getType());
     }
@@ -283,7 +285,7 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         String couponString = barteredAccessManagementService.getCoupon(couponRequest);
         //returned coupon should not be empty
         assertNotNull(couponString);
-        eu.h2020.symbiote.security.commons.Coupon coupon = new eu.h2020.symbiote.security.commons.Coupon(couponString);
+        Coupon coupon = new Coupon(couponString);
         //returned coupon should have proper type
         assertEquals(Type.DISCRETE, coupon.getType());
         //returned coupon should be different than those stored
@@ -329,6 +331,24 @@ public class BarteredAccessUnitTests extends AbstractBTMTestSuite {
         CouponRequest couponRequest = new CouponRequest(Type.DISCRETE, federationId, PLATFORM_ID, null);
         barteredAccessManagementService.getCoupon(couponRequest);
     }
+
+    @Test
+    public void getCouponBTMClientSuccessNoStoredCouponsAndReturnedNewCoupon() throws
+            ValidationException,
+            BTMException {
+        //check if repo is empty
+        assertEquals(0, couponsWallet.count());
+        //create request (checking SecurityRequest is mocked)
+        CouponRequest couponRequest = new CouponRequest(Type.DISCRETE, federationId, PLATFORM_ID, null);
+        BTMClient btmClient = new BTMClient(serverAddress);
+        String couponString = btmClient.getCoupon(couponRequest);
+        //returned coupon should not be empty
+        assertNotNull(couponString);
+        Coupon coupon = new Coupon(couponString);
+        //returned coupon should have proper type
+        assertEquals(Type.DISCRETE, coupon.getType());
+    }
+
 
 
 }

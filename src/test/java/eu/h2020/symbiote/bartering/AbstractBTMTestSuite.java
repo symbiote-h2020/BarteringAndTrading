@@ -10,8 +10,8 @@ import eu.h2020.symbiote.bartering.services.BarteredAccessManagementService;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.bartering.utils.DummyCoreAAMAndBTM;
 import eu.h2020.symbiote.bartering.utils.DummyPlatformBTM;
-import eu.h2020.symbiote.security.communication.BTMClient;
-import eu.h2020.symbiote.security.communication.IBTMClient;
+import eu.h2020.symbiote.security.communication.BTMComponentClient;
+import eu.h2020.symbiote.security.communication.IBTMComponentClient;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.junit.Before;
 import org.junit.Rule;
@@ -79,7 +79,7 @@ public abstract class AbstractBTMTestSuite {
     @Value("${btm.security.CERTIFICATE_ALIAS}")
     protected String CERTIFICATE_ALIAS;
 
-    protected IBTMClient btmClient;
+    protected IBTMComponentClient btmClient;
     @LocalServerPort
     private int port;
 
@@ -110,7 +110,7 @@ public abstract class AbstractBTMTestSuite {
     public void setUp() throws Exception {
         // Catch the random port
         serverAddress = "http://localhost:" + port;
-        btmClient = new BTMClient(serverAddress);
+        btmClient = new BTMComponentClient(serverAddress);
         userKeyPair = CryptoHelper.createKeyPair();
         dummyCoreAAMAndBTM.port = port;
         // cleanup db

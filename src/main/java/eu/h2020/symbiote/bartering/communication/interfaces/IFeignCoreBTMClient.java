@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.bartering.communication;
+package eu.h2020.symbiote.bartering.communication.interfaces;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
@@ -31,8 +31,13 @@ public interface IFeignCoreBTMClient {
             SecurityConstants.COUPON_HEADER_NAME + ": " + "{couponString}"})
     Response registerCoupon(@Param("couponString") String couponString);
 
-    //not implemented
+    //not implemented, interface duplicated in BTMComponentClient in SymbIoTeSecurity
     @RequestLine("POST " + SecurityConstants.BTM_REVOKE_COUPON)
     @Headers("Content-Type: application/json")
     Response revokeCoupon(RevocationRequest revocationRequest);
+
+    //not implemented
+    @RequestLine("POST " + SecurityConstants.BTM_CLEANUP_COUPONS)
+    @Headers("Content-Type: text/plain")
+    Response cleanupConsumedCoupons(long timestamp);
 }
