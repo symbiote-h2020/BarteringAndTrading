@@ -21,10 +21,10 @@ public interface IManageBarteredAccess {
     @PostMapping(value = SecurityConstants.BTM_GET_COUPON)
     ResponseEntity<String> getCoupon(@RequestBody CouponRequest couponRequest);
 
-    /**
-     * @param barteredAccessRequest Request containing information about client trying to get assess to the resource, resourceId and type of access (temporal, discrete)
-     * @return HTTP Status containing information about the result of the operation (OK, INTERNAL_SERVER_ERROR, BAD_REQUEST etc.)
-     */
-    @PostMapping(value = SecurityConstants.BTM_AUTHORIZE_BARTERAL_ACCESS)
-    ResponseEntity<String> authorizeBarteredAccess(@RequestBody BarteredAccessRequest barteredAccessRequest);
+//    /**
+//     * @param barteredAccessRequest Request containing information about client trying to get assess to the resource, resourceId and type of access (temporal, discrete)
+//     * @return HTTP Status containing information about the result of the operation (OK, INTERNAL_SERVER_ERROR, BAD_REQUEST etc.)
+//     */
+//    @PostMapping(value = SecurityConstants.BTM_AUTHORIZE_BARTERAL_ACCESS)
+//    ResponseEntity<String> authorizeBarteredAccess(@RequestBody BarteredAccessRequest barteredAccessRequest);
 }

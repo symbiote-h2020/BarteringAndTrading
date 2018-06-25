@@ -56,7 +56,7 @@ public class ManageBarteredAccessController implements IManageBarteredAccess {
         }
     }
 
-    @Override
+/*    @Override
     @ApiOperation(value = "Request for bartered access")
     @ApiResponses({
             @ApiResponse(code = 200, message = "Access granted."),
@@ -86,5 +86,5 @@ public class ManageBarteredAccessController implements IManageBarteredAccess {
             log.error(e.getMessage());
             return new ResponseEntity<>(e.getErrorMessage(), HttpStatus.UNAUTHORIZED);
         }
-    }
+    }*/
 }
