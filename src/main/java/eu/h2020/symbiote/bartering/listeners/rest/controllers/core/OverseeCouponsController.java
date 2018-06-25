@@ -63,7 +63,7 @@ public class OverseeCouponsController implements IOverseeCoupons {
             @ApiResponse(code = 500, message = "Internal server error occurred (DB error, connection error)")})
     public ResponseEntity<String> registerCoupon(
             @RequestHeader @ApiParam(value = "Security headers", required = true) HttpHeaders httpHeaders,
-            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString) {
+            @RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString) {
         // validate the client
         HttpStatus validationHttpStatus = validateClientCredentials(httpHeaders);
         if (!validationHttpStatus.equals(HttpStatus.OK))
@@ -88,7 +88,7 @@ public class OverseeCouponsController implements IOverseeCoupons {
             @ApiResponse(code = 400, message = "Received coupon didn't pass validation")})
     public ResponseEntity<String> consumeCoupon(
             @RequestHeader @ApiParam(value = "Security headers", required = true) HttpHeaders httpHeaders,
-            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString) {
+            @RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString) {
         HttpStatus validationHttpStatus = validateClientCredentials(httpHeaders);
         if (!validationHttpStatus.equals(HttpStatus.OK))
             return getResponseWithSecurityHeaders(null, validationHttpStatus);
@@ -111,7 +111,7 @@ public class OverseeCouponsController implements IOverseeCoupons {
             @ApiResponse(code = 400, message = "Received coupon was malformed")})
     public ResponseEntity<CouponValidity> isCouponValid(
             @RequestHeader @ApiParam(value = "Security headers", required = true) HttpHeaders httpHeaders,
-            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString) {
+            @RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString) {
         // validate the client
         HttpStatus validationHttpStatus = validateClientCredentials(httpHeaders);
         if (!validationHttpStatus.equals(HttpStatus.OK))

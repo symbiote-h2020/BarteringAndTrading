@@ -23,7 +23,7 @@ public class AccountingCoupon {
     private final Coupon.Type type;
 
     /**
-     * can be either number of discrete usagesCounter or a period in seconds designating how long should an activated token be valid for.
+     * can be either number of discrete usagesCounter or a period in seconds designating how long should an activated coupon be valid for.
      */
     private final long maximumAllowedUsage;
 

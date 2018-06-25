@@ -17,7 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
- * Spring service used to revoke tokens and certificates.
+ * Spring service used to revoke coupons.
  * * @author Jakub Toczek (PSNC)
  */
 @Profile("core")

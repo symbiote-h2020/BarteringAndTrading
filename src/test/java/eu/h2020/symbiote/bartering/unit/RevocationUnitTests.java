@@ -101,7 +101,7 @@ public class RevocationUnitTests extends
         assertNotNull(couponString);
         AccountingCoupon accountingCoupon = new AccountingCoupon(couponString);
         globalCouponsRegistry.save(accountingCoupon);
-        // verify the user token is not yet revoked
+        // verify the user coupon is not yet revoked
         assertEquals(CouponValidationStatus.VALID, globalCouponsRegistry.findOne(accountingCoupon.getId()).getStatus());
 
         RevocationRequest revocationRequest = new RevocationRequest();

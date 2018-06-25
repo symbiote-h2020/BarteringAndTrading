@@ -96,21 +96,21 @@ public class DummyCoreAAMAndBTM {
     }
 
     @PostMapping(path = BTM_PATH + SecurityConstants.BTM_REGISTER_COUPON)
-    public ResponseEntity<String> registerCoupon(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString) {
+    public ResponseEntity<String> registerCoupon(@RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString) {
         HttpHeaders httpHeaders1 = new HttpHeaders();
         httpHeaders1.add("x-auth-response", "any");
         return new ResponseEntity<>(null, httpHeaders1, registrationStatus);
     }
 
     @PostMapping(path = BTM_PATH + SecurityConstants.BTM_CONSUME_COUPON)
-    public ResponseEntity<String> consumeCoupon(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString) {
+    public ResponseEntity<String> consumeCoupon(@RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString) {
         HttpHeaders httpHeaders1 = new HttpHeaders();
         httpHeaders1.add("x-auth-response", "any");
         return new ResponseEntity<>(null, httpHeaders1, consumptionStatus);
     }
 
     @PostMapping(path = BTM_PATH + SecurityConstants.BTM_IS_COUPON_VALID)
-    public ResponseEntity<CouponValidity> isCouponValid(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString) {
+    public ResponseEntity<CouponValidity> isCouponValid(@RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString) {
         HttpHeaders httpHeaders1 = new HttpHeaders();
         httpHeaders1.add("x-auth-response", "any");
         return new ResponseEntity<>(new CouponValidity(couponValidationStatus, Coupon.Type.DISCRETE, 10, 0), httpHeaders1, HttpStatus.OK);

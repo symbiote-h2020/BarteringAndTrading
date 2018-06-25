@@ -60,7 +60,7 @@ public class CouponIssuer {
     }
 
     public static String buildCouponJWS(Coupon.Type voucherType,
-                                        long tokenValidity,
+                                        long couponValidity,
                                         String issuer,
                                         String federationId,
                                         PublicKey issuerPublicKey,
@@ -73,7 +73,7 @@ public class CouponIssuer {
         // Insert B&T Public Key
         claimsMap.put("ipk", Base64.getEncoder().encodeToString(issuerPublicKey.getEncoded()));
         // Insert B&T validity
-        claimsMap.put(SecurityConstants.CLAIM_NAME_COUPON_VALIDITY, tokenValidity);
+        claimsMap.put(SecurityConstants.CLAIM_NAME_COUPON_VALIDITY, couponValidity);
         // Insert B&T federation Id
         claimsMap.put(SecurityConstants.CLAIM_NAME_FEDERATION_ID, federationId);
         //Insert coupon type

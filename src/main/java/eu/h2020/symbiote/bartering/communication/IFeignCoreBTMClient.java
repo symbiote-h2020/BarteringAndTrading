@@ -18,17 +18,17 @@ public interface IFeignCoreBTMClient {
 
     @RequestLine("POST " + SecurityConstants.BTM_CONSUME_COUPON)
     @Headers({"Content-Type: text/plain", "Accept: text/plain",
-            SecurityConstants.TOKEN_HEADER_NAME + ": " + "{couponString}"})
+            SecurityConstants.COUPON_HEADER_NAME + ": " + "{couponString}"})
     Response consumeCoupon(@Param("couponString") String couponString);
 
     @RequestLine("POST " + SecurityConstants.BTM_IS_COUPON_VALID)
     @Headers({"Content-Type: text/plain", "Accept: application/json",
-            SecurityConstants.TOKEN_HEADER_NAME + ": " + "{couponString}"})
+            SecurityConstants.COUPON_HEADER_NAME + ": " + "{couponString}"})
     CouponValidity isCouponValid(@Param("couponString") String couponString);
 
     @RequestLine("POST " + SecurityConstants.BTM_REGISTER_COUPON)
     @Headers({"Content-Type: text/plain", "Accept: text/plain",
-            SecurityConstants.TOKEN_HEADER_NAME + ": " + "{couponString}"})
+            SecurityConstants.COUPON_HEADER_NAME + ": " + "{couponString}"})
     Response registerCoupon(@Param("couponString") String couponString);
 
     //not implemented

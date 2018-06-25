@@ -15,17 +15,17 @@ public interface IOverseeCoupons {
     @PostMapping(value = SecurityConstants.BTM_REGISTER_COUPON)
     ResponseEntity<String> registerCoupon(
             @RequestHeader HttpHeaders httpHeaders,
-            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString);
+            @RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString);
 
     @PostMapping(value = SecurityConstants.BTM_IS_COUPON_VALID)
     ResponseEntity<CouponValidity> isCouponValid(
             @RequestHeader HttpHeaders httpHeaders,
-            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString);
+            @RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString);
 
     @PostMapping(value = SecurityConstants.BTM_CONSUME_COUPON)
     ResponseEntity<String> consumeCoupon(
             @RequestHeader HttpHeaders httpHeaders,
-            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String couponString);
+            @RequestHeader(SecurityConstants.COUPON_HEADER_NAME) String couponString);
 
     @PostMapping(value = SecurityConstants.BTM_CLEANUP_COUPONS)
     ResponseEntity<Integer> cleanupConsumedCoupons(@RequestBody long timestamp);
