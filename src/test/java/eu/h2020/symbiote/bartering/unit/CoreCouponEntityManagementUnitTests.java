@@ -1,12 +1,9 @@
 package eu.h2020.symbiote.bartering.unit;
 
-import com.google.gson.Gson;
 import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
 import eu.h2020.symbiote.bartering.TestConfig;
 import eu.h2020.symbiote.bartering.communication.CoreBTMClient;
 import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
-import eu.h2020.symbiote.bartering.dto.FilterRequest;
-import eu.h2020.symbiote.bartering.dto.FilterResponse;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.commons.Coupon;
@@ -31,7 +28,7 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Set;
 
 import static eu.h2020.symbiote.bartering.TestConfig.NO_CONNECTION_ISSUER_NAME;
 import static eu.h2020.symbiote.bartering.TestConfig.SERVICE_ISSUER_NAME;
@@ -679,43 +676,37 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         coreBTMClient.isCouponValid("");
     }
 
-//    @Test
-//    public void coreBTMListCouponUsageSuccess() throws Exception {
-//
-//
-//        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
-//
-//        String couponString = CouponIssuer.buildCouponJWS(
-//                Coupon.Type.DISCRETE,
-//                10000,
-//                SERVICE_ISSUER_NAME,
-//                FEDERATION_ID,
-//                serviceBtmKeyPair.getPublic(),
-//                serviceBtmKeyPair.getPrivate());
-//        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
-//        String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
-//
-//        AccountingCoupon coupon = new AccountingCoupon(couponString);
-//
-//        globalCouponsRegistry.save(coupon);
-//        //check if coupon in db
-//
-//        //consume coupon
-//        assertTrue(coreBTMClient.consumeCoupon(couponString));
-//
-//
-//        FilterRequest filter = new FilterRequest();
-//        filter.setPlatform(coupon.getIssuer());
-//
-//        FilterResponse list =  coreBTMClient.listCouponUsage(filter);
-//
-//        throw new Exception("COUPON >> " +new Gson().toJson(coupon)+
-//                "\nFILTER >> "+ new Gson().toJson(filter) +
-//                "\nLIST USAGE >> "+ new Gson().toJson(list) );
-//
-//
-//
-//
-//
-//    }
+    @Test
+    public void coreBTMListCouponUsageSuccess() throws Exception {
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+
+        String couponString = CouponIssuer.buildCouponJWS(
+                Coupon.Type.DISCRETE,
+                10000,
+                SERVICE_ISSUER_NAME,
+                FEDERATION_ID,
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
+
+        AccountingCoupon coupon = new AccountingCoupon(couponString);
+
+        globalCouponsRegistry.save(coupon);
+
+        //consume coupon
+        assertTrue(coreBTMClient.consumeCoupon(couponString));
+
+
+        long oneDayMilis = 86400000;
+        long actualTimeStamp = new Date().getTime();
+        Set<AccountingCoupon> test1 = globalCouponsRegistry.findByIssuer(coupon.getIssuer());
+        Set<AccountingCoupon> test2 = globalCouponsRegistry.findAllByIssuerAndUseTimestampBetween(
+                coupon.getIssuer(),
+                actualTimeStamp - oneDayMilis,
+                actualTimeStamp + oneDayMilis );
+
+        assertNotNull(test1);
+        assertNotNull(test2);
+        assertEquals(test1.size(), test2.size());
+
+    }
 }
