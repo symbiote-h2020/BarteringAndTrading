@@ -1,7 +1,10 @@
 package eu.h2020.symbiote.bartering.listeners.rest.controllers.core;
 
 import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
+import eu.h2020.symbiote.bartering.dto.FilterRequest;
+import eu.h2020.symbiote.bartering.dto.FilterResponse;
 import eu.h2020.symbiote.bartering.listeners.rest.interfaces.core.IOverseeCoupons;
+import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.IssuedCouponsRegistryManagementService;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
@@ -30,8 +33,11 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Spring controller to handle HTTPS requests associated with overseeing symbiote coupons in the CoreBTM.
@@ -177,4 +183,40 @@ public class OverseeCouponsController implements IOverseeCoupons {
         }
     }
 
+    @Override
+    @ApiOperation(value = "List used coupons")
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Received request was malformed")})
+    public ResponseEntity<List<FilterResponse>> listCouponUsage(@RequestBody
+            FilterRequest request) {
+
+        if (!request.isValidRequest())
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        List<FilterResponse> list = new ArrayList<>();
+        Set<AccountingCoupon> set = couponManagementService.getCouponStats(request);
+
+        // TODO ~ test and remove this if condition
+        if (set == null || set.isEmpty())
+            return new ResponseEntity<>(list, HttpStatus.OK);
+
+        for (AccountingCoupon ac : set){
+
+            //            try {
+            //                JWTEngine.getClaimsFromJWT(ac.getCouponString()).
+            //            } catch (MalformedJWTException e) {
+            //                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            //            }
+
+            list.add(new FilterResponse(
+                    ac.getId(),
+                    ac.getIssuer(),
+                    request.beginTimestamp!=null?
+                            ac.getNumberOfUsedTimeFiltered(request.beginTimestamp, request.endTimestamp) :
+                            ac.getUsagesCounter()
+            ));
+        }
+
+        return new ResponseEntity<>(list, HttpStatus.OK);
+    }
 }
