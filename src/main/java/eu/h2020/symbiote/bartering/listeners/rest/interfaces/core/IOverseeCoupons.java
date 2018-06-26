@@ -3,6 +3,7 @@ package eu.h2020.symbiote.bartering.listeners.rest.interfaces.core;
 import eu.h2020.symbiote.bartering.dto.FilterRequest;
 import eu.h2020.symbiote.bartering.dto.FilterResponse;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +35,6 @@ public interface IOverseeCoupons {
     @PostMapping(value = SecurityConstants.BTM_CLEANUP_COUPONS)
     ResponseEntity<Integer> cleanupConsumedCoupons(@RequestBody long timestamp);
 
-    @PostMapping(value = "/couponusage", consumes = "application/json")
-    ResponseEntity<List<FilterResponse>> listCouponUsage(@RequestBody FilterRequest filter);
+    @PostMapping(value = "/couponusage")
+    ResponseEntity<List<FilterResponse>> listCouponUsage(@RequestBody FilterRequest filter) throws ValidationException;
 }

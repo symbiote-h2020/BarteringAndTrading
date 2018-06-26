@@ -17,6 +17,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
+import io.jsonwebtoken.Claims;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -187,36 +188,41 @@ public class OverseeCouponsController implements IOverseeCoupons {
     @ApiOperation(value = "List used coupons")
     @ApiResponses({
             @ApiResponse(code = 400, message = "Received request was malformed")})
-    public ResponseEntity<List<FilterResponse>> listCouponUsage(@RequestBody
-            FilterRequest request) {
-
+    public ResponseEntity<List<FilterResponse>> listCouponUsage(@RequestBody FilterRequest request)
+            throws ValidationException {
         if (!request.isValidRequest())
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return getResponseWithSecurityHeaders(null, HttpStatus.BAD_REQUEST);
 
         List<FilterResponse> list = new ArrayList<>();
         Set<AccountingCoupon> set = couponManagementService.getCouponStats(request);
 
-        // TODO ~ test and remove this if condition
-        if (set == null || set.isEmpty())
-            return new ResponseEntity<>(list, HttpStatus.OK);
-
         for (AccountingCoupon ac : set){
+            boolean addIt = false;
 
-            //            try {
-            //                JWTEngine.getClaimsFromJWT(ac.getCouponString()).
-            //            } catch (MalformedJWTException e) {
-            //                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            //            }
+            // match federation id
+            if(request.getFederationId() != null) {
+                Claims claims = JWTEngine.getClaims(ac.getCouponString());
+                if (claims.get(SecurityConstants.CLAIM_NAME_FEDERATION_ID,
+                        String.class).equals(request.federationId)) {
+                    addIt = true;
+                }
+            }
+            else {
+                addIt = true;
+            }
 
-            list.add(new FilterResponse(
-                    ac.getId(),
-                    ac.getIssuer(),
-                    request.beginTimestamp!=null?
-                            ac.getNumberOfUsedTimeFiltered(request.beginTimestamp, request.endTimestamp) :
-                            ac.getUsagesCounter()
-            ));
+            // add it to returning list
+            if (addIt){
+                list.add(new FilterResponse(
+                        ac.getId(),
+                        ac.getIssuer(),
+                        request.beginTimestamp!=null?
+                                ac.getNumberOfUsedTimeFiltered(request.beginTimestamp, request.endTimestamp) :
+                                ac.getUsagesCounter()
+                ));
+            }
         }
 
-        return new ResponseEntity<>(list, HttpStatus.OK);
+        return getResponseWithSecurityHeaders(list, HttpStatus.OK);
     }
 }
