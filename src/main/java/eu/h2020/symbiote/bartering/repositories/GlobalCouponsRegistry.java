@@ -18,4 +18,8 @@ public interface GlobalCouponsRegistry extends MongoRepository<AccountingCoupon,
     Set<AccountingCoupon> findByIssuer(String issuer);
 
     Set<AccountingCoupon> findAllByLastConsumptionTimestampBefore(long timestamp);
+
+    Set<AccountingCoupon> findAllByIssuerAndUseTimestampBetween(String issuer, long begin, long end);
+
+    Set<AccountingCoupon> findAllByIssuer(String platformId);
 }

@@ -10,6 +10,8 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.List;
+
 /**
  * CouponEntity stored in the Core BTM registry along with its consumption details.
  */
@@ -31,6 +33,11 @@ public class AccountingCoupon {
      * discrete coupon usagesCounter counter
      */
     private long usagesCounter;
+
+    /**
+     * required to get usage history
+     */
+    private List<Long> useTimestamp;
 
     /**
      * required to evaluate a timed coupon
@@ -113,5 +120,15 @@ public class AccountingCoupon {
 
     public String getIssuer() {
         return issuer;
+    }
+
+    public long getNumberOfUsedTimeFiltered(long begin, long end){
+        if (useTimestamp != null){
+            return useTimestamp
+                    .stream()
+                    .filter( x -> (x >= begin && x < end))
+                    .count();
+        }
+        return 0;
     }
 }

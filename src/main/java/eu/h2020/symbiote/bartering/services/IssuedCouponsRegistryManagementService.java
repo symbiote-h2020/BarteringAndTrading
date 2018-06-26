@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.bartering.services;
 
 import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
+import eu.h2020.symbiote.bartering.dto.FilterRequest;
 import eu.h2020.symbiote.bartering.repositories.GlobalCouponsRegistry;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.security.commons.Certificate;
@@ -148,6 +149,18 @@ public class IssuedCouponsRegistryManagementService {
             }
             default:
                 return new CouponValidity(accountingCoupon.getStatus(), Coupon.Type.NULL, 0, 0);
+        }
+    }
+    public Set<AccountingCoupon> getCouponStats(FilterRequest request) {
+        if (/*request.federationId != null &&*/ request.beginTimestamp != null){
+            return globalCouponsRegistry.findAllByIssuerAndUseTimestampBetween(
+                    request.getPlatform(),
+                    request.getBeginTimestamp(),
+                    request.getEndTimestamp()
+            );
+        }else {
+            return globalCouponsRegistry.findAllByIssuer(request.getPlatform());
+
         }
     }
 }
