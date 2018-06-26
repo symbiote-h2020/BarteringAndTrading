@@ -4,6 +4,7 @@ import eu.h2020.symbiote.bartering.AbstractCoreBTMTestSuite;
 import eu.h2020.symbiote.bartering.TestConfig;
 import eu.h2020.symbiote.bartering.communication.CoreBTMClient;
 import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
+import eu.h2020.symbiote.bartering.dto.FilterRequest;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
 import eu.h2020.symbiote.security.commons.Coupon;
@@ -695,7 +696,6 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         //consume coupon
         assertTrue(coreBTMClient.consumeCoupon(couponString));
 
-
         long oneDayMilis = 86400000;
         long actualTimeStamp = new Date().getTime();
         Set<AccountingCoupon> test1 = globalCouponsRegistry.findByIssuer(coupon.getIssuer());
@@ -707,6 +707,37 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
         assertNotNull(test1);
         assertNotNull(test2);
         assertEquals(test1.size(), test2.size());
+
+    }
+    @Test
+    public void coreBTMListCouponUsage2Success() throws Exception {
+        CoreBTMClient coreBTMClient = new CoreBTMClient(serverAddress, mockedComponentSecurityHandler);
+
+        String couponString = CouponIssuer.buildCouponJWS(
+                Coupon.Type.DISCRETE,
+                10000,
+                SERVICE_ISSUER_NAME,
+                FEDERATION_ID,
+                serviceBtmKeyPair.getPublic(),
+                serviceBtmKeyPair.getPrivate());
+
+        AccountingCoupon coupon = new AccountingCoupon(couponString);
+
+        globalCouponsRegistry.save(coupon);
+
+        //consume coupon
+        assertTrue(coreBTMClient.consumeCoupon(couponString));
+
+        long oneDayMilis = 86400000;
+        long actualTimeStamp = new Date().getTime();
+
+        FilterRequest filter = new FilterRequest();
+        filter.setPlatform(coupon.getIssuer());
+        filter.setBeginTimestamp(actualTimeStamp + oneDayMilis);
+        filter.setEndTimestamp(actualTimeStamp * oneDayMilis);
+
+        coreBTMClient.listCouponUsage(filter);
+        assertNotNull(coreBTMClient.listCouponUsage(filter));
 
     }
 }

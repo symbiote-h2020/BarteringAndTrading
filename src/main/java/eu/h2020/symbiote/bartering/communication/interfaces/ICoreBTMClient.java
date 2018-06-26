@@ -54,6 +54,6 @@ public interface ICoreBTMClient {
             BTMException;
 
 
-    FilterResponse listCouponUsage(FilterRequest filter) throws Exception;
+    List<FilterResponse> listCouponUsage(FilterRequest filter) throws Exception;
 
 }

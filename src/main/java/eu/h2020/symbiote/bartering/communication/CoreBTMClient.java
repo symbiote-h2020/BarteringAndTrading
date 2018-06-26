@@ -98,14 +98,15 @@ public class CoreBTMClient implements ICoreBTMClient {
     }
 
 
-    public FilterResponse listCouponUsage(FilterRequest filter) throws
+    public List<FilterResponse> listCouponUsage(FilterRequest filter) throws
             InvalidArgumentsException,
             WrongCredentialsException,
             BTMException {
-
+        List<FilterResponse> cenas=null;
         try {
-            log.info(this.feignCoreBTMClient.listCouponUsage(filter));
-            return this.feignCoreBTMClient.listCouponUsage(filter);
+            cenas = this.feignCoreBTMClient.listCouponUsage(filter);
+            log.info(new Gson().toJson(cenas));
+
         } catch (FeignException e) {
             switch (e.status()) {
             case 400:
@@ -116,6 +117,9 @@ public class CoreBTMClient implements ICoreBTMClient {
                 throw new BTMException(e.getMessage()); //500
             }
         }
+
+
+        return cenas;
     }
 
 }

@@ -49,5 +49,5 @@ public interface IFeignCoreBTMClient {
 
     @RequestLine("POST "+ "/couponusage")
     @Headers("Content-Type: application/json")
-    FilterResponse listCouponUsage(@RequestBody FilterRequest request);
+    List<FilterResponse> listCouponUsage(FilterRequest request);
 }
