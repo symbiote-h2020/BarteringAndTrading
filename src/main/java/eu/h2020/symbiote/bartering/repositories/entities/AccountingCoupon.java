@@ -10,6 +10,7 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -64,6 +65,8 @@ public class AccountingCoupon {
         this.lastConsumptionTimestamp = 0;
         this.status = CouponValidationStatus.VALID;
 
+        this.useTimestamp=new ArrayList<>();
+
     }
 
     public static String createIdFromNotification(String jti, String iss) {
@@ -100,6 +103,10 @@ public class AccountingCoupon {
 
     public void setLastConsumptionTimestamp(long lastConsumptionTimestamp) {
         this.lastConsumptionTimestamp = lastConsumptionTimestamp;
+        if (useTimestamp==null){
+            this.useTimestamp=new ArrayList<>();
+        }
+        this.useTimestamp.add(lastConsumptionTimestamp);
     }
 
     public CouponValidationStatus getStatus() {
