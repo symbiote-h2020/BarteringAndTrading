@@ -1,7 +1,10 @@
 package eu.h2020.symbiote.bartering.communication;
 
+import com.google.gson.Gson;
 import eu.h2020.symbiote.bartering.communication.interfaces.ICoreBTMClient;
 import eu.h2020.symbiote.bartering.communication.interfaces.IFeignCoreBTMClient;
+import eu.h2020.symbiote.bartering.dto.FilterRequest;
+import eu.h2020.symbiote.bartering.dto.FilterResponse;
 import eu.h2020.symbiote.security.clients.SymbioteComponentClientFactory;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
@@ -14,6 +17,12 @@ import feign.FeignException;
 import feign.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * REST client responsible for communication with Core Bartering Trading Module
@@ -88,5 +97,25 @@ public class CoreBTMClient implements ICoreBTMClient {
         }
     }
 
+
+    public FilterResponse listCouponUsage(FilterRequest filter) throws
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            BTMException {
+
+        try {
+            log.info(this.feignCoreBTMClient.listCouponUsage(filter));
+            return this.feignCoreBTMClient.listCouponUsage(filter);
+        } catch (FeignException e) {
+            switch (e.status()) {
+            case 400:
+                throw new InvalidArgumentsException(e.getMessage());
+            case 401:
+                throw new WrongCredentialsException(e.getMessage());
+            default:
+                throw new BTMException(e.getMessage()); //500
+            }
+        }
+    }
 
 }

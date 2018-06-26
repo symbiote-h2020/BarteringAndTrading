@@ -1,9 +1,13 @@
 package eu.h2020.symbiote.bartering.communication.interfaces;
 
+import eu.h2020.symbiote.bartering.dto.FilterRequest;
+import eu.h2020.symbiote.bartering.dto.FilterResponse;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
+
+import java.util.List;
 
 /**
  * Interface describing communication to Core Bartering Trading Module
@@ -48,5 +52,8 @@ public interface ICoreBTMClient {
             InvalidArgumentsException,
             WrongCredentialsException,
             BTMException;
+
+
+    FilterResponse listCouponUsage(FilterRequest filter) throws Exception;
 
 }
