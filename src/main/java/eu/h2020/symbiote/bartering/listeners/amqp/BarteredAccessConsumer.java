@@ -92,7 +92,6 @@ public class BarteredAccessConsumer {
 		amqpTemplate.convertAndSend(replyTo, (Object)result, new MessagePostProcessor() {
 			@Override
 			public Message postProcessMessage(Message message) throws AmqpException {
-				/*https://stackoverflow.com/questions/42382307/messageproperties-setcorrelationidstring-is-not-working*/
 				message.getMessageProperties().setCorrelationIdString(correlationId);
 				return message;
 			}

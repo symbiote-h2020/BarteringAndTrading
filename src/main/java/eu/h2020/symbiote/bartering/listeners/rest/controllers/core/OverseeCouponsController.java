@@ -4,8 +4,10 @@ import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.dto.FilterRequest;
 import eu.h2020.symbiote.bartering.dto.FilterResponse;
 import eu.h2020.symbiote.bartering.listeners.rest.interfaces.core.IOverseeCoupons;
+import eu.h2020.symbiote.bartering.repositories.TrustRepository;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.IssuedCouponsRegistryManagementService;
+import eu.h2020.symbiote.cloud.trust.model.TrustEntry;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
@@ -25,6 +27,7 @@ import io.swagger.annotations.ApiResponses;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -54,6 +57,12 @@ public class OverseeCouponsController implements IOverseeCoupons {
     private static Log log = LogFactory.getLog(OverseeCouponsController.class);
     private IssuedCouponsRegistryManagementService couponManagementService;
     private ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
+
+    @Value("${trust.entity.threshold}")
+    private Double trustEntityThreshold ;
+
+    @Autowired
+    private TrustRepository trustRepository;
 
     @Autowired
     public OverseeCouponsController(IssuedCouponsRegistryManagementService couponManagementService,
@@ -99,6 +108,12 @@ public class OverseeCouponsController implements IOverseeCoupons {
         HttpStatus validationHttpStatus = validateClientCredentials(httpHeaders);
         if (!validationHttpStatus.equals(HttpStatus.OK))
             return getResponseWithSecurityHeaders(null, validationHttpStatus);
+
+        // check if client is over threshold
+        if (!isThresholdSuccessfullyExceeded(httpHeaders)){
+            return getResponseWithSecurityHeaders(null, HttpStatus.PRECONDITION_FAILED);
+        }
+
         try {
             CouponValidationStatus couponValidationStatus = couponManagementService.consumeCoupon(new Coupon(couponString));
             if (couponValidationStatus == CouponValidationStatus.VALID) {
@@ -225,4 +240,23 @@ public class OverseeCouponsController implements IOverseeCoupons {
 
         return getResponseWithSecurityHeaders(list, HttpStatus.OK);
     }
+
+    private boolean isThresholdSuccessfullyExceeded(@RequestHeader HttpHeaders httpHeaders){
+        try {
+            SecurityRequest securityRequest;
+            securityRequest = new SecurityRequest(httpHeaders.toSingleValueMap());
+            JWTClaims claims = JWTEngine.getClaimsFromJWT(securityRequest.getSecurityCredentials().iterator().next().getToken());
+
+            TrustEntry te = trustRepository.getPREntryByPlatformId(claims.getIss());
+
+            if (te != null && te.getValue() >= trustEntityThreshold ){
+                return true;
+            }
+        } catch (InvalidArgumentsException e) {}
+        catch (MalformedJWTException e) {}
+
+        return false;
+    }
+
+
 }
