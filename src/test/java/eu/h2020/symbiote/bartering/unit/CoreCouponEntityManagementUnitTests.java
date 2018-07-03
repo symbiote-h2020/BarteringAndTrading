@@ -5,8 +5,10 @@ import eu.h2020.symbiote.bartering.TestConfig;
 import eu.h2020.symbiote.bartering.communication.CoreBTMClient;
 import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
 import eu.h2020.symbiote.bartering.dto.FilterRequest;
+import eu.h2020.symbiote.bartering.repositories.TrustRepository;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.helpers.CouponIssuer;
+import eu.h2020.symbiote.cloud.trust.model.TrustEntry;
 import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.commons.enums.CouponValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
@@ -18,6 +20,7 @@ import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -30,7 +33,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-
 import static eu.h2020.symbiote.bartering.TestConfig.NO_CONNECTION_ISSUER_NAME;
 import static eu.h2020.symbiote.bartering.TestConfig.SERVICE_ISSUER_NAME;
 import static junit.framework.TestCase.assertEquals;
@@ -52,6 +54,10 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
     @Autowired
     private ComponentSecurityHandlerProvider componentSecurityHandlerProvider;
 
+    @Autowired
+    private TrustRepository trustRepository;
+
+    private TrustEntry te;
 
     private KeyPair serviceBtmKeyPair;
 
@@ -72,7 +78,20 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 .when(mockedSecurityHandler).getAvailableAAMs();
 
         doReturn(new HashSet<>(Collections.singletonList("anything"))).when(mockedComponentSecurityHandler).getSatisfiedPoliciesIdentifiers(Mockito.any(), Mockito.any());
+
+        te = new TrustEntry();
+        te.setValue(80.0);
+        te.setPlatformId("testusername");
+        te.setType(TrustEntry.Type.PLATFORM_REPUTATION);
+        trustRepository.save(te);
     }
+
+
+    @After
+    public void remove(){
+        trustRepository.delete(te);
+    }
+
 
     @Test
     public void registerCouponSuccess() throws
