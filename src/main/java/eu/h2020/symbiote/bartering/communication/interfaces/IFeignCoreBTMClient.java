@@ -1,7 +1,8 @@
 package eu.h2020.symbiote.bartering.communication.interfaces;
 
-import eu.h2020.symbiote.bartering.dto.FilterRequest;
-import eu.h2020.symbiote.bartering.dto.FilterResponse;
+
+import eu.h2020.symbiote.barteringAndTrading.FilterRequest;
+import eu.h2020.symbiote.barteringAndTrading.FilterResponse;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.CouponValidity;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
@@ -9,9 +10,6 @@ import feign.Headers;
 import feign.Param;
 import feign.RequestLine;
 import feign.Response;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-
 import java.util.List;
 
 /**

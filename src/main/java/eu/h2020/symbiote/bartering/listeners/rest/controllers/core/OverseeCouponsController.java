@@ -1,12 +1,12 @@
 package eu.h2020.symbiote.bartering.listeners.rest.controllers.core;
 
 import eu.h2020.symbiote.bartering.config.ComponentSecurityHandlerProvider;
-import eu.h2020.symbiote.bartering.dto.FilterRequest;
-import eu.h2020.symbiote.bartering.dto.FilterResponse;
 import eu.h2020.symbiote.bartering.listeners.rest.interfaces.core.IOverseeCoupons;
 import eu.h2020.symbiote.bartering.repositories.TrustRepository;
 import eu.h2020.symbiote.bartering.repositories.entities.AccountingCoupon;
 import eu.h2020.symbiote.bartering.services.IssuedCouponsRegistryManagementService;
+import eu.h2020.symbiote.barteringAndTrading.FilterRequest;
+import eu.h2020.symbiote.barteringAndTrading.FilterResponse;
 import eu.h2020.symbiote.cloud.trust.model.TrustEntry;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;

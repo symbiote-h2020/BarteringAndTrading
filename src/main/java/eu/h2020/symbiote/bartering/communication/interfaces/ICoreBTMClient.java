@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.bartering.communication.interfaces;
 
-import eu.h2020.symbiote.bartering.dto.FilterRequest;
-import eu.h2020.symbiote.bartering.dto.FilterResponse;
+import eu.h2020.symbiote.barteringAndTrading.FilterRequest;
+import eu.h2020.symbiote.barteringAndTrading.FilterResponse;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BTMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
