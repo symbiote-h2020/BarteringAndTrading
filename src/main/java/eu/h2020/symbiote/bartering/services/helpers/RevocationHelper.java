@@ -39,10 +39,10 @@ public class RevocationHelper {
     public boolean revokeCouponByAdmin(String coupon) throws
             ValidationException,
             MalformedJWTException {
-        if (JWTEngine.validateJWTString(coupon) != ValidationStatus.VALID) {
+        if (JWTEngine.validateTokenString(coupon) != ValidationStatus.VALID) {
             throw new ValidationException("Received coupon is not valid.");
         }
-        JWTClaims couponClaims = JWTEngine.getClaimsFromJWT(coupon);
+        JWTClaims couponClaims = JWTEngine.getClaimsFromToken(coupon);
         if (!globalCouponsRegistry.exists(AccountingCoupon.createIdFromNotification(couponClaims.getJti(), couponClaims.getIss()))) {
             log.error("CouponEntity doesn't exist in issued coupons repository!");
             return false;

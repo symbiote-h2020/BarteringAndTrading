@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
+
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -33,6 +34,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+
 import static eu.h2020.symbiote.bartering.TestConfig.NO_CONNECTION_ISSUER_NAME;
 import static eu.h2020.symbiote.bartering.TestConfig.SERVICE_ISSUER_NAME;
 import static junit.framework.TestCase.assertEquals;
@@ -108,7 +110,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 FEDERATION_ID,
                 serviceBtmKeyPair.getPublic(),
                 serviceBtmKeyPair.getPrivate());
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        JWTClaims claims = JWTEngine.getClaimsFromToken(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
@@ -140,7 +142,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 FEDERATION_ID,
                 serviceBtmKeyPair.getPublic(),
                 serviceBtmKeyPair.getPrivate());
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        JWTClaims claims = JWTEngine.getClaimsFromToken(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
@@ -179,7 +181,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 FEDERATION_ID,
                 keyPair.getPublic(),
                 keyPair.getPrivate());
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        JWTClaims claims = JWTEngine.getClaimsFromToken(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
@@ -206,7 +208,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 FEDERATION_ID,
                 keyPair.getPublic(),
                 keyPair.getPrivate());
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        JWTClaims claims = JWTEngine.getClaimsFromToken(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
@@ -229,7 +231,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 FEDERATION_ID,
                 serviceBtmKeyPair.getPublic(),
                 serviceBtmKeyPair.getPrivate());
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        JWTClaims claims = JWTEngine.getClaimsFromToken(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
@@ -557,7 +559,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 FEDERATION_ID,
                 serviceBtmKeyPair.getPublic(),
                 serviceBtmKeyPair.getPrivate());
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        JWTClaims claims = JWTEngine.getClaimsFromToken(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         //check if coupon not in db
         assertFalse(globalCouponsRegistry.exists(registeredCouponId));
@@ -608,7 +610,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 FEDERATION_ID,
                 serviceBtmKeyPair.getPublic(),
                 serviceBtmKeyPair.getPrivate());
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        JWTClaims claims = JWTEngine.getClaimsFromToken(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         globalCouponsRegistry.save(new AccountingCoupon(couponString));
         //check if coupon in db
@@ -663,7 +665,7 @@ public class CoreCouponEntityManagementUnitTests extends AbstractCoreBTMTestSuit
                 FEDERATION_ID,
                 serviceBtmKeyPair.getPublic(),
                 serviceBtmKeyPair.getPrivate());
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        JWTClaims claims = JWTEngine.getClaimsFromToken(couponString);
         String registeredCouponId = AccountingCoupon.createIdFromNotification(claims.getJti(), claims.getIss());
         globalCouponsRegistry.save(new AccountingCoupon(couponString));
         //check if coupon in db

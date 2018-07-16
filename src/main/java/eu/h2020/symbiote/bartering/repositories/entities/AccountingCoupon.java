@@ -54,7 +54,7 @@ public class AccountingCoupon {
     public AccountingCoupon(String couponString) throws
             MalformedJWTException,
             ValidationException {
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(couponString);
+        JWTClaims claims = JWTEngine.getClaimsFromToken(couponString);
         this.id = createIdFromNotification(claims.getJti(), claims.getIss());
         this.couponString = couponString;
         this.issuer = claims.getIss();

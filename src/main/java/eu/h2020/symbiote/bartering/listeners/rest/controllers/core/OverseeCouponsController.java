@@ -37,11 +37,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Spring controller to handle HTTPS requests associated with overseeing symbiote coupons in the CoreBTM.
@@ -164,7 +160,7 @@ public class OverseeCouponsController implements IOverseeCoupons {
                 // cause empty map causes exception
                 return HttpStatus.UNAUTHORIZED;
             }
-            JWTClaims claims = JWTEngine.getClaimsFromJWT(securityRequest.getSecurityCredentials().iterator().next().getToken());
+            JWTClaims claims = JWTEngine.getClaimsFromToken(securityRequest.getSecurityCredentials().iterator().next().getToken());
             // building CHTAP access policy basing on platform found in ISS of security request token
             Map<String, IAccessPolicy> componentHomeTokenAPs = new HashMap<>();
             String componentHTPolicyId = "btmAccessPolicy";
@@ -245,7 +241,7 @@ public class OverseeCouponsController implements IOverseeCoupons {
         try {
             SecurityRequest securityRequest;
             securityRequest = new SecurityRequest(httpHeaders.toSingleValueMap());
-            JWTClaims claims = JWTEngine.getClaimsFromJWT(securityRequest.getSecurityCredentials().iterator().next().getToken());
+            JWTClaims claims = JWTEngine.getClaimsFromToken(securityRequest.getSecurityCredentials().iterator().next().getToken());
 
             TrustEntry te = trustRepository.getPREntryByPlatformId(claims.getIss());
 

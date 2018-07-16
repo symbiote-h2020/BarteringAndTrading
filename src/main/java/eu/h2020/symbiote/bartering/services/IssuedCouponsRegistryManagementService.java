@@ -52,7 +52,7 @@ public class IssuedCouponsRegistryManagementService {
                         .stream()
                         .filter(x -> x.getStatus().equals(CouponValidationStatus.CONSUMED_COUPON))
                         .map(AccountingCoupon::getId).collect(toSet());
-        deletedConsumedCouponsIdentifier.forEach(x -> globalCouponsRegistry.delete(x));
+        deletedConsumedCouponsIdentifier.forEach(globalCouponsRegistry::delete);
         return deletedConsumedCouponsIdentifier.size();
     }
 
@@ -87,7 +87,7 @@ public class IssuedCouponsRegistryManagementService {
             BTMException,
             SecurityHandlerException {
 
-        JWTClaims claims = JWTEngine.getClaimsFromJWT(coupon.getCoupon());
+        JWTClaims claims = JWTEngine.getClaimsFromToken(coupon.getCoupon());
         //checking if coupon has proper fields
         if (claims.getVal() == null
                 || claims.getVal().isEmpty()
