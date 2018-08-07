@@ -36,9 +36,9 @@ public class AppConfig extends AbstractMongoConfiguration {
     private MongoClient mongoClient = null;
 
     @Autowired
-    AppConfig(@Value("${btm.database.name}") String databaseName,
-              @Value("${btm.database.host:localhost}") String databaseHost,
-              @Value("${btm.platformId}") String platformId,
+    AppConfig(@Value("${symbiote.btm.database}") String databaseName,
+              @Value("${spring.data.mongodb.host:localhost}") String databaseHost,
+              @Value("${platform.id}") String platformId,
               ApplicationContext ctx) throws SecurityMisconfigurationException {
         this.databaseName = databaseName;
         this.databaseHost = databaseHost;

@@ -48,15 +48,15 @@ public abstract class AbstractCoreBTMTestSuite {
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     protected String coreInterfaceAddress;
 
-    @Value("${btm.deployment.owner.username}")
+    @Value("${symbIoTe.component.username}")
     protected String BTMOwnerUsername;
-    @Value("${btm.deployment.owner.password}")
+    @Value("${symbIoTe.component.password}")
     protected String BTMOwnerPassword;
-    @Value("${btm.security.KEY_STORE_PASSWORD}")
+    @Value("${symbIoTe.component.keystore.password}")
     protected String KEY_STORE_PASSWORD;
     @Value("${btm.security.PV_KEY_PASSWORD}")
     protected String PV_KEY_PASSWORD;
-    @Value("${btm.security.KEY_STORE_FILE_NAME}")
+    @Value("${symbIoTe.component.keystore.path}")
     protected String KEY_STORE_FILE_NAME;
     @Value("${btm.security.CERTIFICATE_ALIAS}")
     protected String CERTIFICATE_ALIAS;
