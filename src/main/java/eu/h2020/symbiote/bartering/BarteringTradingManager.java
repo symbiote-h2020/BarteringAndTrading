@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Bean;
 public class BarteringTradingManager {
 
     public static void main(String[] args) {
+        WaitForPort.waitForServices(WaitForPort.findProperty("SPRING_BOOT_WAIT_FOR_SERVICES"));
         SpringApplication.run(BarteringTradingManager.class, args);
     }
 

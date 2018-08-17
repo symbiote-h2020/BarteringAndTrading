@@ -19,12 +19,12 @@ public class ComponentSecurityHandlerProvider {
     private IComponentSecurityHandler componentSecurityHandler;
 
     @Autowired
-    public ComponentSecurityHandlerProvider(@Value("${btm.security.KEY_STORE_FILE_NAME}") String keyStoreFileName,
-                                            @Value("${btm.security.KEY_STORE_PASSWORD}") String keyStorePassword,
-                                            @Value("${btm.deployment.owner.username}") String AAMOwnerUsername,
-                                            @Value("${btm.deployment.owner.password}") String AAMOwnerPassword,
+    public ComponentSecurityHandlerProvider(@Value("${symbIoTe.component.keystore.path}") String keyStoreFileName,
+                                            @Value("${symbIoTe.component.keystore.password}") String keyStorePassword,
+                                            @Value("${symbIoTe.component.username}") String AAMOwnerUsername,
+                                            @Value("${symbIoTe.component.password}") String AAMOwnerPassword,
                                             @Value("${symbIoTe.localaam.url}") String localAAMAddress,
-                                            @Value("${btm.platformId}") String platformId) throws
+                                            @Value("${platform.id}") String platformId) throws
             SecurityHandlerException {
 
         componentSecurityHandler = ComponentSecurityHandlerFactory.getComponentSecurityHandler(

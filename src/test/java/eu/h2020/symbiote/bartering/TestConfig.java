@@ -47,10 +47,10 @@ public class TestConfig {
     @Bean
     @Primary
     public ComponentSecurityHandlerProvider componentSecurityHandlerProvider(
-            @Value("${btm.security.KEY_STORE_FILE_NAME}") String KEY_STORE_FILE_NAME,
+            @Value("${symbIoTe.component.keystore.path}") String KEY_STORE_FILE_NAME,
             @Value("${btm.security.CERTIFICATE_ALIAS}") String CERTIFICATE_ALIAS,
             @Value("${btm.security.ROOT_CA_CERTIFICATE_ALIAS}") String ROOT_CERTIFICATE_ALIAS,
-            @Value("${btm.security.KEY_STORE_PASSWORD}") String KEY_STORE_PASSWORD,
+            @Value("${symbIoTe.component.keystore.password}") String KEY_STORE_PASSWORD,
             @Value("${btm.security.PV_KEY_PASSWORD}") String PV_KEY_PASSWORD
 
     ) throws

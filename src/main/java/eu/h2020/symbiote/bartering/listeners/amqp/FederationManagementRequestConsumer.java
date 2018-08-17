@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.stream.Collectors;
 
 @Profile("platform")
@@ -39,12 +40,15 @@ public class FederationManagementRequestConsumer {
             exchange = @Exchange(
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
-                    durable = "false",
-                    internal = "${rabbit.exchange.aam.internal}",
-                    type = "topic"),
+                    durable = "${rabbit.exchange.federation.durable}",
+                    internal = "${rabbit.exchange.federation.internal}",
+                    autoDelete = "${rabbit.exchange.federation.autodelete}",
+                    type = "${rabbit.exchange.federation.type}"),
             key = "${rabbit.routingKey.federation.created}"))
-    public void federationCreate(String message) {
-        log.debug("[x] Received Federation to create");
+    public void federationCreate(byte[] body) {
+        String message = new String(body, Charset.forName("UTF-8"));
+
+        log.debug("[x] Received Federation to create: " + message);
         ObjectMapper om = new ObjectMapper();
 
         Federation federation;
@@ -72,12 +76,15 @@ public class FederationManagementRequestConsumer {
             exchange = @Exchange(
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
-                    durable = "false",
-                    internal = "${rabbit.exchange.aam.internal}",
-                    type = "topic"),
+                    durable = "${rabbit.exchange.federation.durable}",
+                    internal = "${rabbit.exchange.federation.internal}",
+                    autoDelete = "${rabbit.exchange.federation.autodelete}",
+                    type = "${rabbit.exchange.federation.type}"),
             key = "${rabbit.routingKey.federation.deleted}"))
-    public void federationDelete(String federationId) {
-        log.debug("[x] Received Federation Id to delete");
+    public void federationDelete(byte[] body) {
+        String federationId = new String(body, Charset.forName("UTF-8"));
+        log.debug("[x] Received Federation Id to delete: " + federationId);
+
         try {
             if (federationId == null
                     || federationId.isEmpty())
@@ -98,12 +105,15 @@ public class FederationManagementRequestConsumer {
             exchange = @Exchange(
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
-                    durable = "false",
-                    internal = "${rabbit.exchange.aam.internal}",
-                    type = "topic"),
+                    durable = "${rabbit.exchange.federation.durable}",
+                    internal = "${rabbit.exchange.federation.internal}",
+                    autoDelete = "${rabbit.exchange.federation.autodelete}",
+                    type = "${rabbit.exchange.federation.type}"),
             key = "${rabbit.routingKey.federation.changed}"))
-    public void federationUpdate(String message) {
-        log.debug("[x] Received Federation to update");
+    public void federationUpdate(byte[] body) {
+        String message = new String(body, Charset.forName("UTF-8"));
+        log.debug("[x] Received Federation to update: " + message);
+
         ObjectMapper om = new ObjectMapper();
         Federation federation;
         try {

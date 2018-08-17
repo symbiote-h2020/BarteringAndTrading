@@ -26,9 +26,9 @@ public class CouponRevocationService {
     private static Log log = LogFactory.getLog(CouponRevocationService.class);
     private final RevocationHelper revocationHelper;
     private final PasswordEncoder passwordEncoder;
-    @Value("${btm.deployment.owner.username}")
+    @Value("${symbIoTe.component.username}")
     private String BTMOwnerUsername;
-    @Value("${btm.deployment.owner.password}")
+    @Value("${symbIoTe.component.password}")
     private String BTMOwnerPassword;
 
     @Autowired
