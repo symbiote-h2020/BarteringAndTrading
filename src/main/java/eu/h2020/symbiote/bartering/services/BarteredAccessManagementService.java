@@ -90,6 +90,7 @@ public class BarteredAccessManagementService {
             InvalidArgumentsException,
             WrongCredentialsException {
         // check if both client requesting access and this platform is in the given federation
+        log.debug("check if both client requesting access and this platform is in the given federation");
         if (!federationsRepository.exists(barteredAccessRequest.getFederationId())) {
             throw new InvalidArgumentsException("Provided federation doesn't exist");
         }
@@ -103,6 +104,8 @@ public class BarteredAccessManagementService {
         }
 
         //get clients btm address
+        log.debug("get clients btm address");
+
         Map<String, AAM> availableAAMs = componentSecurityHandlerProvider.getComponentSecurityHandler().getSecurityHandler().getAvailableAAMs();
         if (!availableAAMs.containsKey(barteredAccessRequest.getClientPlatform())) {
             throw new BTMException("Clients platform is not registered in CoreAAM.");
@@ -116,6 +119,7 @@ public class BarteredAccessManagementService {
                 + BTM_SUFFIX;
 
         // ask for my own coupon
+        log.debug("ask for my own coupon");
         BTMClient remotePlatformBTMClient = new BTMClient(clientBtmAddress);
         //generate coupon Request
         CouponRequest couponRequest = new CouponRequest(barteredAccessRequest.getCouponType(),
@@ -126,11 +130,13 @@ public class BarteredAccessManagementService {
         String receivedCouponString = remotePlatformBTMClient.getCoupon(couponRequest);
         Claims claims = JWTEngine.getClaims(receivedCouponString);
         // check, if coupon is for proper federation Id
+        log.debug("check, if coupon is for proper federation Id");
         if (!claims.get(SecurityConstants.CLAIM_NAME_FEDERATION_ID, String.class).equals(barteredAccessRequest.getFederationId())) {
             log.error("CouponEntity does not contain proper federation Id.");
             return false;
         }
         // if we have received our own coupon but it was already invalidated (we couldn't consume it anymore)
+        log.debug("if we have received our own coupon but it was already invalidated (we couldn't consume it anymore)");
         CoreBTMClient coreBTMClient = new CoreBTMClient(this.coreBTMAddress, this.componentSecurityHandlerProvider.getComponentSecurityHandler());
         if (claims.getIssuer().equals(appConfig.getPlatformIdentifier())
                 && !coreBTMClient.consumeCoupon(receivedCouponString)) {
@@ -139,6 +145,7 @@ public class BarteredAccessManagementService {
             return false;
         }
         // if we have received foreign coupon for bartering
+        log.debug("if we have received foreign coupon for bartering");
         if (!claims.getIssuer().equals(appConfig.getPlatformIdentifier())) {
             // validate coupon in core
             CouponValidity couponValidity = coreBTMClient.isCouponValid(receivedCouponString);
@@ -189,12 +196,16 @@ public class BarteredAccessManagementService {
                     couponRequest.getCouponType(),
                     couponRequest.getFederationId(),
                     CouponValidationStatus.VALID);
+            log.info("search for all stored coupons: " + couponEntityHashSet.toString());
+
             CoreBTMClient coreBTMClient = new CoreBTMClient(this.coreBTMAddress, this.componentSecurityHandlerProvider.getComponentSecurityHandler());
             for (CouponEntity couponEntity : couponEntityHashSet) {
                 // validate couponEntity in core
+                log.debug("validate couponEntity in core");
                 CouponValidity couponValidity = coreBTMClient.isCouponValid(couponEntity.getCouponString());
                 // if core confirms Validity of the couponEntity - return it
                 if (couponValidity.getStatus().equals(CouponValidationStatus.VALID)) {
+                    log.debug("core confirms Validity of the couponEntity - return it");
                     return couponEntity.getCouponString();
                 }
                 //else update db
@@ -202,12 +213,15 @@ public class BarteredAccessManagementService {
                 couponsWallet.save(couponEntity);
             }
             // if no valid coupon found - create new for bartering
+            log.debug("if no valid coupon found - create new for bartering");
             Coupon coupon = couponIssuer.getCoupon(couponRequest.getCouponType(), couponRequest.getFederationId());
             //register coupon in core
+            log.debug("register coupon in core");
             if (!coreBTMClient.registerCoupon(coupon.getCoupon())) {
                 couponsWallet.delete(coupon.getId());
                 throw new BTMException("Couldn't register new coupon.");
             }
+            log.debug("return coupon");
             return coupon.getCoupon();
 
         } catch (InvalidArgumentsException | SecurityHandlerException e) {
