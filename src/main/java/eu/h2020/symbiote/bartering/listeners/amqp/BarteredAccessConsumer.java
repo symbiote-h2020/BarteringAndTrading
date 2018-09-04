@@ -45,7 +45,6 @@ public class BarteredAccessConsumer {
 			BarteredAccessRequest barteredAccessRequest;
 			barteredAccessRequest = om.readValue(message, BarteredAccessRequest.class);
 
-
 			/*checking request*/
 			if (barteredAccessRequest.getClientPlatform() == null ||
 					barteredAccessRequest.getClientPlatform().isEmpty() ||
@@ -54,13 +53,15 @@ public class BarteredAccessConsumer {
 					barteredAccessRequest.getCouponType() == null) {
 				throw new InvalidArgumentsException("BarteredAccessRequest doesn't contain all required fields.");
 			}
+
 			if (barteredAccessManagementService.authorizeBarteredAccess(barteredAccessRequest)) {
 				result = String.valueOf(HttpStatus.OK);
 				log.info(result);
+			}else {
+				result = String.valueOf(HttpStatus.BAD_REQUEST);
+				log.error(result);
 			}
 
-			result = String.valueOf(HttpStatus.BAD_REQUEST);
-			log.error(result);
 		} catch (InvalidArgumentsException | ValidationException e) {
 			result = String.valueOf(HttpStatus.BAD_REQUEST) +" : "+ e.getErrorMessage();
 			log.error(result);
