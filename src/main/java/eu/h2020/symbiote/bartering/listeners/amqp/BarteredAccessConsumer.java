@@ -63,17 +63,17 @@ public class BarteredAccessConsumer {
 			}
 
 		} catch (InvalidArgumentsException | ValidationException e) {
-			result = String.valueOf(HttpStatus.BAD_REQUEST) +" : "+ e.getErrorMessage();
-			log.error(result);
+			result = String.valueOf(HttpStatus.BAD_REQUEST) +" : "+ e.getMessage();
+			log.error(result, e);
 		} catch (SecurityHandlerException | BTMException e) {
-			result = String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR) +" : "+ e.getErrorMessage();
-			log.error(result);
+			result = String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR) +" : "+ e.getMessage();
+			log.error(result, e);
 		} catch (WrongCredentialsException e) {
-			result = String.valueOf(HttpStatus.UNAUTHORIZED) +" : "+ e.getErrorMessage();
-			log.error(result);
+			result = String.valueOf(HttpStatus.UNAUTHORIZED) +" : "+ e.getMessage();
+			log.error(result, e);
 		}catch (IOException e) {
 			result = String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR) +" : "+ e.getMessage();
-			log.error(result);
+			log.error(result, e);
 		}
 
 		return result;
