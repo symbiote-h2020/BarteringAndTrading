@@ -105,10 +105,6 @@ public class OverseeCouponsController implements IOverseeCoupons {
         if (!validationHttpStatus.equals(HttpStatus.OK))
             return getResponseWithSecurityHeaders(null, validationHttpStatus);
 
-      /*  // check if client is over threshold
-        if (!isThresholdSuccessfullyExceeded(httpHeaders)){
-            return getResponseWithSecurityHeaders(null, HttpStatus.PRECONDITION_FAILED);
-        }*/
 
         try {
             CouponValidationStatus couponValidationStatus = couponManagementService.consumeCoupon(new Coupon(couponString));
@@ -236,23 +232,5 @@ public class OverseeCouponsController implements IOverseeCoupons {
 
         return getResponseWithSecurityHeaders(list, HttpStatus.OK);
     }
-
-    private boolean isThresholdSuccessfullyExceeded(@RequestHeader HttpHeaders httpHeaders){
-        try {
-            SecurityRequest securityRequest;
-            securityRequest = new SecurityRequest(httpHeaders.toSingleValueMap());
-            JWTClaims claims = JWTEngine.getClaimsFromToken(securityRequest.getSecurityCredentials().iterator().next().getToken());
-
-            TrustEntry te = trustRepository.getPREntryByPlatformId(claims.getIss());
-
-            if (te != null && te.getValue() >= trustEntityThreshold ){
-                return true;
-            }
-        } catch (InvalidArgumentsException e) {}
-        catch (MalformedJWTException e) {}
-
-        return false;
-    }
-
 
 }
