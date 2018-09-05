@@ -105,10 +105,10 @@ public class OverseeCouponsController implements IOverseeCoupons {
         if (!validationHttpStatus.equals(HttpStatus.OK))
             return getResponseWithSecurityHeaders(null, validationHttpStatus);
 
-        // check if client is over threshold
+      /*  // check if client is over threshold
         if (!isThresholdSuccessfullyExceeded(httpHeaders)){
             return getResponseWithSecurityHeaders(null, HttpStatus.PRECONDITION_FAILED);
-        }
+        }*/
 
         try {
             CouponValidationStatus couponValidationStatus = couponManagementService.consumeCoupon(new Coupon(couponString));
