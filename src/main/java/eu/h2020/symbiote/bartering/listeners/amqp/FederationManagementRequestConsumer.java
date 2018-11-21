@@ -5,8 +5,12 @@ import eu.h2020.symbiote.bartering.repositories.FederationsRepository;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.amqp.rabbit.annotation.Argument;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
@@ -14,10 +18,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.stream.Collectors;
 
 @Profile("platform")
 @Component
@@ -36,7 +36,8 @@ public class FederationManagementRequestConsumer {
     }
 
     @RabbitListener(bindings = @QueueBinding(
-            value = @Queue,
+            value = @Queue(arguments =
+                    {@Argument(name = "x-message-ttl", value = "${rabbit.replyTimeout}", type = "java.lang.Integer")}),
             exchange = @Exchange(
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
@@ -44,7 +45,9 @@ public class FederationManagementRequestConsumer {
                     internal = "${rabbit.exchange.federation.internal}",
                     autoDelete = "${rabbit.exchange.federation.autodelete}",
                     type = "${rabbit.exchange.federation.type}"),
-            key = "${rabbit.routingKey.federation.created}"))
+            key = "${rabbit.routingKey.federation.created}"),
+            containerFactory = "noRequeueContainerFactory"
+    )
     public void federationCreate(byte[] body) {
         String message = new String(body, Charset.forName("UTF-8"));
 
